@@ -34,3 +34,4 @@ data_cache/
 
 *.log
 logs/
+.cbsrm_cache/

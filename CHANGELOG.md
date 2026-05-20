@@ -6,11 +6,104 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Planned for v0.3
+### Planned for v0.3.1 / v0.4
 - SRISK (Brownlees-Engle 2017) on top of `bashtage/arch`
 - LRMES + MES
 - BIS Stats API adapter
 - 2008Q4 / 2020Q1 / 2023Q1 crisis-replay notebooks
+- CISS-US-Canonical SLOOS frequency fix (DRTSCILM/DRTSCLCC are quarterly, not weekly)
+- OFR-FSI User-Agent fix (server-side WAF blocks default httpx UA)
+- True NFP surprise (consensus-forecast adapter) — replaces NFPMomentumIndicator
+- Oil-macro indicator (WTI + OVX + term structure)
+- CPI surprise indicator
+- Credit-spread regime classifier
+- BIS Stats API adapter
+
+---
+
+## [0.3.0] — 2026-05-20
+
+### Added — v0.3 milestone: Macro Engine + Multi-jurisdiction + i18n
+
+**Japan + multi-language**
+
+- `cbsrm.macro.jpy_regime.JPYRegimeIndicator` — USD/JPY trend regime via
+  FRED `DEXJPUS`. Same z-score methodology as DXY but classifications
+  reflect the yen's safe-haven role: USD_STRONG_JPY_WEAK / USD_MILD_BULL_JPY
+  / NEUTRAL / USD_MILD_BEAR_JPY / USD_WEAK_JPY_STRONG. CLI: `cbsrm jpy-regime`.
+- `cbsrm.i18n` — multi-language label dictionary covering en / ja / es / fr / de
+  for all v0.3 macro indicator interpretations. Every macro indicator now
+  carries `interpretation_i18n` in its metadata as a per-locale dict.
+  Consumers (CLI, dashboard, API) can pick a locale at render time without
+  re-running the indicator.
+- Test invariant: every i18n key has a translation for every supported locale
+  (enforced in `tests/test_i18n.py`).
+
+**New subpackage — `cbsrm.macro`**
+
+Macro-economic indicators that sit one layer above the L2 stress indices.
+Each implements `IIndicator` so it plugs into the existing audit chain,
+replication harness, FastAPI service, and CLI driver.
+
+- `cbsrm.macro.yield_curve.YieldCurveIndicator` — T10Y3M inversion + days-
+  inverted run-length + Estrella-Mishkin (NY Fed) probit for 12-month
+  recession probability. Pure-Python `Phi(.)`, no scipy dependency.
+- `cbsrm.macro.nfp_momentum.NFPMomentumIndicator` — Rolling 60-month z-score
+  of MoM log payroll growth (FRED `PAYEMS`). Classifies ACCELERATING /
+  AT_TREND / DECELERATING / SEVERE_DECELERATION. Promotes to true
+  *actual-minus-consensus* surprise in v0.4 when a consensus adapter ships.
+- `cbsrm.macro.ffr_change.FFRChangeIndicator` — Composite of 3M/6M/12M EFFR
+  changes (FRED `DFF`), in basis points. Regime buckets calibrated against
+  1994 / 2004-06 / 2015-19 / 2022-23 hiking cycles: AGGRESSIVE_TIGHTENING /
+  TIGHTENING / PAUSE / EASING / AGGRESSIVE_EASING. Thresholds at ±150 bp /
+  ±40 bp on the composite.
+- `cbsrm.macro.dxy_regime.DXYRegimeIndicator` — Rolling 252-day z-score of
+  the Federal Reserve Board H.10 broad trade-weighted USD index (FRED
+  `DTWEXBGS`). Strong-bull / strong-bear at |z| ≥ 1.5. Built around Bruno-
+  Shin (2015) and Avdjiev-du-Koepke-Shin (2018) finding that broad USD
+  regime is the primary driver of global / EM financial conditions.
+- `cbsrm.macro.macro_composite.MacroCompositeIndicator` — 4-state regime
+  composite (RISK_ON / TRANSITION_UP / TRANSITION_DOWN / RISK_OFF). Each
+  sub-indicator emits a score in [-1, +1]; mean bucketed at ±0.4 / ±0.1.
+  Three hard-override triggers force RISK_OFF independent of composite
+  score: persistent inversion + recession-prob > 30%, AGGRESSIVE_TIGHTENING,
+  SEVERE_PAYROLL_DECELERATION.
+
+**CLI**
+- `cbsrm yield-curve [--start ...]` — live FRED smoke for T10Y3M.
+- `cbsrm nfp-momentum [--start ...]` — live PAYEMS smoke.
+- `cbsrm ffr-change [--start ...]` — live DFF smoke.
+- `cbsrm dxy-regime [--start ...]` — live DTWEXBGS smoke.
+- `cbsrm macro-regime [--start ...]` — 4-state composite end-to-end.
+- `cbsrm info` updated to list the macro indicators.
+
+**Tests**
+- 221 passing (was 168; +53 new across 5 new test files). All HTTP mocked.
+
+**Whitepaper**
+- New §9 "Macro Engine" between §8 (live validation) and Appendix A.
+  Documents methodology choices, threshold calibrations, 4-state regime
+  scoring rule, and 2026-05-20 live-data readings.
+
+### Whitepaper §9 status
+
+The §9 commitment of the Macro Engine layer is satisfied by v0.3. Reference
+invocation:
+
+```
+cbsrm macro-regime --start 2010-01-01
+```
+
+Threshold calibrations may tighten in v0.4 after a 3-month live observation
+window.
+
+### Notes
+- The macro engine is intentionally *separable* from the stress engine.
+  Stress indices (§§3-8) and macro indicators (§9) plug into the same audit
+  + diagnostics + API + CLI infrastructure but are independently usable.
+- Private companion repo (VolanX) wires the composite regime into a
+  position-sizing layer via the new `ISignalSource` protocol — that
+  integration is *not* part of the public CBSRM release.
 
 ### Planned for v0.4
 - ΔCoVaR (Adrian-Brunnermeier 2016)

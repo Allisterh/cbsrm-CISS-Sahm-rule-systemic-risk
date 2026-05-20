@@ -45,6 +45,11 @@ def cmd_info(_args: argparse.Namespace) -> int:
             "STLFSI4", "OFR-FSI", "ECB-CISS-EA", "ECB-CISS-US", "ECB-CISS-UK",
             "CISS-US", "CISS-US-Canonical",
         ],
+        "macro_indicators": [
+            "YIELD-CURVE-US", "NFP-MOMENTUM-US", "FFR-CHANGE-US",
+            "DXY-REGIME-US", "JPY-REGIME", "MACRO-COMPOSITE-US",
+        ],
+        "supported_locales": ["en", "ja", "es", "fr", "de"],
         "data_sources": ["FRED", "OFR", "ECB"],
         "builders": ["CISSUSBuilder"],
         "diagnostics": ["replicate", "crisis_windows"],
@@ -322,6 +327,131 @@ def cmd_crisis_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+def _fred_macro_fetch(series_ids: list[str], api_key: str | None,
+                      start: str | None, end: str | None,
+                      frequency: str | None = None) -> "pd.DataFrame":
+    """Helper: fetch one or more FRED series into a wide DataFrame for the
+    macro indicators."""
+    from cbsrm.data import FREDClient
+    fred = FREDClient(api_key=api_key)
+    kwargs: dict[str, Any] = {}
+    if start:
+        kwargs["observation_start"] = start
+    if end:
+        kwargs["observation_end"] = end
+    if frequency:
+        kwargs["frequency"] = frequency
+    return fred.get_multi(series_ids, **kwargs)
+
+
+def _emit_macro_result(result: Any, verbose: bool) -> None:
+    ts, value = result.latest if result.latest is not None else (None, None)
+    out: dict[str, Any] = {
+        "indicator_id": result.indicator_id,
+        "version": result.version,
+        "as_of": ts.isoformat() if ts is not None else None,
+        "value": value,
+        "n_obs": int(result.values.size),
+    }
+    # Surface key metadata fields
+    keys = (
+        "regime", "classification",
+        "latest_z_score", "latest_z", "latest_rate_pct",
+        "latest_spread_pp", "latest_recession_prob_12mo",
+        "latest_is_inverted", "latest_days_inverted_run",
+        "latest_composite_change_bp", "latest_log_return_3m",
+        "latest_regime", "latest_composite_score",
+        "latest_sub_scores", "latest_override_triggers",
+        "interpretation",
+    )
+    for k in keys:
+        if k in result.metadata:
+            out[k] = result.metadata[k]
+    if verbose and result.subindex_values is not None and not result.subindex_values.empty:
+        out["subindex_latest"] = result.subindex_values.iloc[-1].to_dict()
+    print(json.dumps(out, indent=2, default=str))
+
+
+def cmd_yield_curve(args: argparse.Namespace) -> int:
+    from cbsrm.macro import YieldCurveIndicator
+    df = _fred_macro_fetch(["T10Y3M"], args.api_key, args.start, args.end, frequency="d")
+    if df.empty or "T10Y3M" not in df.columns:
+        print("[yield-curve] no T10Y3M data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(YieldCurveIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_nfp_momentum(args: argparse.Namespace) -> int:
+    from cbsrm.macro import NFPMomentumIndicator
+    df = _fred_macro_fetch(["PAYEMS"], args.api_key, args.start, args.end, frequency="m")
+    if df.empty or "PAYEMS" not in df.columns:
+        print("[nfp-momentum] no PAYEMS data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(NFPMomentumIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_ffr_change(args: argparse.Namespace) -> int:
+    from cbsrm.macro import FFRChangeIndicator
+    df = _fred_macro_fetch(["DFF"], args.api_key, args.start, args.end, frequency="d")
+    if df.empty or "DFF" not in df.columns:
+        print("[ffr-change] no DFF data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(FFRChangeIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_dxy_regime(args: argparse.Namespace) -> int:
+    from cbsrm.macro import DXYRegimeIndicator
+    df = _fred_macro_fetch(["DTWEXBGS"], args.api_key, args.start, args.end, frequency="d")
+    if df.empty or "DTWEXBGS" not in df.columns:
+        print("[dxy-regime] no DTWEXBGS data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(DXYRegimeIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_jpy_regime(args: argparse.Namespace) -> int:
+    from cbsrm.macro import JPYRegimeIndicator
+    df = _fred_macro_fetch(["DEXJPUS"], args.api_key, args.start, args.end, frequency="d")
+    if df.empty or "DEXJPUS" not in df.columns:
+        print("[jpy-regime] no DEXJPUS data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(JPYRegimeIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_macro_regime(args: argparse.Namespace) -> int:
+    """Compute the 4-state composite macro regime end-to-end."""
+    import pandas as pd
+    from cbsrm.macro import MacroCompositeIndicator
+
+    # The four sub-indicators want different frequencies. PAYEMS is monthly,
+    # the others are daily. Fetch separately then align via outer join +
+    # forward-fill of the monthly series.
+    df_daily = _fred_macro_fetch(
+        ["T10Y3M", "DFF", "DTWEXBGS"], args.api_key, args.start, args.end, frequency="d",
+    )
+    df_monthly = _fred_macro_fetch(
+        ["PAYEMS"], args.api_key, args.start, args.end, frequency="m",
+    )
+    if df_daily.empty or df_monthly.empty:
+        print("[macro-regime] empty FRED response on one or more series",
+              file=sys.stderr)
+        return 1
+    # Align monthly PAYEMS onto the daily grid via forward-fill
+    payems_aligned = df_monthly["PAYEMS"].reindex(df_daily.index, method="ffill")
+    df = df_daily.copy()
+    df["PAYEMS"] = payems_aligned
+    df = df.dropna(how="any")
+    if df.empty:
+        print("[macro-regime] no overlapping observations", file=sys.stderr)
+        return 2
+    _emit_macro_result(MacroCompositeIndicator().compute(df), args.verbose)
+    return 0
+
+
 def cmd_verify_audit(args: argparse.Namespace) -> int:
     from cbsrm.audit import AuditChain
     conn = sqlite3.connect(args.db)
@@ -394,6 +524,49 @@ def main(argv: list[str] | None = None) -> int:
                        help="Render full markdown dossier (paper-ready)")
     p_cr.add_argument("--json", action="store_true")
     p_cr.set_defaults(func=cmd_crisis_replay)
+
+    # ─── Macro Engine (v0.3) ─────────────────────────────────────────
+    p_yc = sub.add_parser("yield-curve",
+                          help="Yield-curve inversion + Estrella-Mishkin recession probability")
+    p_yc.add_argument("--start"); p_yc.add_argument("--end")
+    p_yc.add_argument("--api-key", help="FRED API key (or env FRED_API_KEY)")
+    p_yc.add_argument("-v", "--verbose", action="store_true")
+    p_yc.set_defaults(func=cmd_yield_curve)
+
+    p_nfp = sub.add_parser("nfp-momentum",
+                           help="Non-farm payrolls MoM-growth rolling z-score")
+    p_nfp.add_argument("--start"); p_nfp.add_argument("--end")
+    p_nfp.add_argument("--api-key")
+    p_nfp.add_argument("-v", "--verbose", action="store_true")
+    p_nfp.set_defaults(func=cmd_nfp_momentum)
+
+    p_ffr = sub.add_parser("ffr-change",
+                           help="Effective federal funds rate 3M/6M/12M change momentum")
+    p_ffr.add_argument("--start"); p_ffr.add_argument("--end")
+    p_ffr.add_argument("--api-key")
+    p_ffr.add_argument("-v", "--verbose", action="store_true")
+    p_ffr.set_defaults(func=cmd_ffr_change)
+
+    p_dxy = sub.add_parser("dxy-regime",
+                           help="Broad trade-weighted USD index trend regime")
+    p_dxy.add_argument("--start"); p_dxy.add_argument("--end")
+    p_dxy.add_argument("--api-key")
+    p_dxy.add_argument("-v", "--verbose", action="store_true")
+    p_dxy.set_defaults(func=cmd_dxy_regime)
+
+    p_jpy = sub.add_parser("jpy-regime",
+                           help="USD/JPY trend regime (Japan / safe-haven currency)")
+    p_jpy.add_argument("--start"); p_jpy.add_argument("--end")
+    p_jpy.add_argument("--api-key")
+    p_jpy.add_argument("-v", "--verbose", action="store_true")
+    p_jpy.set_defaults(func=cmd_jpy_regime)
+
+    p_macro = sub.add_parser("macro-regime",
+                             help="4-state macro composite (RISK_ON / TRANSITION / RISK_OFF)")
+    p_macro.add_argument("--start"); p_macro.add_argument("--end")
+    p_macro.add_argument("--api-key")
+    p_macro.add_argument("-v", "--verbose", action="store_true")
+    p_macro.set_defaults(func=cmd_macro_regime)
 
     p_verify = sub.add_parser("verify-audit")
     p_verify.add_argument("--db", required=True)

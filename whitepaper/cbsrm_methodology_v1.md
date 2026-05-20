@@ -387,6 +387,196 @@ BIS Annual Economic Report (2025). "The next-generation monetary and financial s
 
 ---
 
+## 8 — Live validation against real data (v0.2 smoke test, 2026-05-20)
+
+Sections 1–7 describe the methodology. This section reports the first end-to-end live execution of the v0.2 pipeline against real public data sources, as a pre-submission sanity check.
+
+### 8.1 — Headline numerical readings
+
+The current systemic-stress snapshot across three jurisdictions, captured on the indicators' most recent published observation dates:
+
+| Indicator       | Value      | Observation date | Source          | Interpretation                  |
+|-----------------|------------|------------------|-----------------|---------------------------------|
+| ECB-CISS-US     | 0.00817    | 2026-05-18       | ECB Data Portal | Very low (>0.4 ≈ crisis zone)   |
+| ECB-CISS-EA     | 0.00261    | 2026-05-18       | ECB Data Portal | Very low                        |
+| ECB-CISS-UK     | 0.05322    | 2026-05-18       | ECB Data Portal | Low–moderate                    |
+| STLFSI4 (US)    | -0.7404    | 2026-05-15       | St. Louis Fed   | Below-average stress (z-scored) |
+
+All four readings reproducible via `python -m cbsrm.cli latest <id>` after `pip install -e .` and `export FRED_API_KEY=<key>`.
+
+### 8.2 — Cross-jurisdiction observations
+
+Three observations on this snapshot:
+
+1. **UK runs roughly 20× the US/EA reading.** Cross-jurisdiction divergence of this magnitude is itself a financial-stability signal — global conditions are not homogeneous despite tight integration. Likely drivers as of May 2026 include gilt-market dynamics and Bank of England policy posture, though decomposing the contribution is out of scope for this section.
+2. **EA reads below US.** Both are deep in the "very low" zone, but euro-area is the lowest of the three.
+3. **Independent US methodology cross-checks.** STLFSI4 (St. Louis Fed, z-scored composite of US money-market, interest-rate, and credit indicators) and ECB-CISS-US (Holló-Kremer-Lo Duca aggregation over a different basket published by the ECB) use disjoint input series and unrelated aggregation rules. Both report below-average / near-zero stress for the US on the observation date. This is the first piece of empirical cross-source corroboration in the CBSRM pipeline against live data.
+
+### 8.3 — Defects surfaced by live execution
+
+Two methodology-relevant defects appeared only against live sources. The v0.2 test suite passes 168/168 against mocked HTTP fixtures, but mocking cannot catch input-format drift or upstream-server policy changes.
+
+1. **CISS-US-Canonical frequency mismatch.** The canonical 15-input recipe in `cbsrm.builders.ciss_us_builder` requests SLOOS-style credit-tightening series (FRED IDs `DRTSCILM`, `DRTSCLCC`) at weekly cadence. Those series are published quarterly. FRED returns HTTP 400 with `Bad Request`. Fix: route the SLOOS subset through quarterly fetch then forward-fill to weekly. Targeted for v0.3.
+2. **OFR-FSI 403 Forbidden.** The Office of Financial Research's CSV endpoint at `financialresearch.gov/financial-stress-index/data/files/ofr-fsi.csv` blocks the default `httpx` User-Agent (server-side WAF rule, observed 2026-05-20). Fix: set a project-identifying UA string (e.g. `cbsrm/0.2 (financial-stability research; +https://github.com/pravo123/cbsrm)`) in `cbsrm.data.ofr.OFRClient`. Targeted for v0.3.
+
+Neither defect invalidates the four readings above. The CISS-US canonical-vs-OFR-FSI cross-source replication test promised in §7.2 will run in the v0.3 release after these two adapters are fixed.
+
+### 8.4 — Methodological note on transparency
+
+Surfacing live-validation failures is part of the CBSRM design intent, not a coincidence. The audit chain (§4) records `INPUT_MISSING` and `FAILED` lifecycle events for every fetch that errors, so the same audit query that confirms `COMPUTED` lineage also surfaces every silent fallback or substitution. The dossier rendered by `cbsrm.diagnostics.crisis_replay` distinguishes between "indicator unavailable" and "indicator reads low" — a distinction supervisory and central-bank operators should expect from any production financial-stability monitor.
+
+The v0.3 release will (a) close the two defects above, (b) tighten the replication-threshold floor in §7.2 from 0.80 / 0.75 to 0.85 / 0.80 after three months of recorded live observations, and (c) add SRISK (Brownlees-Engle 2017) on top of `bashtage/arch` as the first risk-pricing (rather than stress-indexing) module.
+
+---
+
+## 9 — Macro Engine (v0.3)
+
+§§1–8 focus on systemic-stress *indices* — composite indicators that read the
+current level of market stress. The v0.3 Macro Engine layer sits one level
+above: it ingests slower-moving macroeconomic condition variables (yield-curve
+slope, payroll momentum, policy-rate trajectory, broad-dollar regime) and
+emits a 4-state aggregate regime label intended to *gate* and *weight* the
+stress indices when downstream consumers (e.g. risk-conditional position
+sizers, supervisory dashboards) need a single coarse-grained answer to the
+question "is the macro environment risk-on, risk-off, or in transition?"
+
+### 9.1 — Module inventory
+
+| Module                       | FRED inputs    | Output                                            |
+|------------------------------|----------------|---------------------------------------------------|
+| `YieldCurveIndicator`        | `T10Y3M`       | Estrella-Mishkin (NY Fed) recession probability   |
+| `NFPMomentumIndicator`       | `PAYEMS`       | MoM log-growth rolling z-score (60-month window)  |
+| `FFRChangeIndicator`         | `DFF`          | Composite of 3M/6M/12M EFFR changes (bp)          |
+| `DXYRegimeIndicator`         | `DTWEXBGS`     | 252-day rolling z-score of broad USD index        |
+| `MacroCompositeIndicator`    | all four       | 4-state label + composite score                   |
+
+All five modules implement the `IIndicator` protocol (§4) and therefore plug
+into the audit chain, replication harness, FastAPI service, and CLI driver
+without bespoke wiring.
+
+### 9.2 — Methodology choices
+
+**Yield curve (Estrella & Mishkin, NBER 1996; NY Fed refresh).** Probit on
+the constant-maturity 10Y-minus-3M Treasury spread:
+
+```
+P(recession_{t+12} = 1 | spread_t) = Phi( beta_0 + beta_1 * spread_t )
+beta_0 = -0.5450
+beta_1 = -0.5898
+```
+
+CBSRM publishes the daily probability series plus a *persistent inversion*
+flag (run-length ≥ 60 trading days). Persistent inversion has preceded 8 of
+the last 8 NBER-dated US recessions.
+
+**NFP momentum, not surprise.** Without a real-time consensus-forecast feed
+(Bloomberg / Refinitiv / Trading Economics), v0.3 publishes the rolling
+z-score of monthly log-growth in `PAYEMS` against the trailing 60-month
+window. Promotion to a true *actual − consensus* surprise indicator is
+deferred to v0.4 contingent on a free-tier consensus adapter.
+
+**FFR change composite.** Mean of 3M, 6M, and 12M changes in `DFF`, in basis
+points. Regime thresholds (`±150 bp` aggressive, `±40 bp` normal) are
+calibrated against the 1994, 2004-06, 2015-19, and 2022-23 hiking cycles.
+
+**DXY regime.** Rolling 252-day z-score of FRED `DTWEXBGS` (broad trade-
+weighted dollar, Fed Board H.10) — not the narrower ICE DXY. Strong-bull /
+strong-bear thresholds at |z| ≥ 1.5 follow the Bruno-Shin (2015) and Avdjiev-
+du-Koepke-Shin (2018) findings that broad-dollar regime drives EM and
+cross-border financial conditions.
+
+**Composite (4-state).** Each sub-indicator emits a score in [-1, +1] (risk-
+off negative). The mean is bucketed::
+
+    composite >= +0.4    → RISK_ON
+    -0.1 < composite < +0.4 → TRANSITION_UP
+    -0.4 < composite <= -0.1 → TRANSITION_DOWN
+    composite <= -0.4    → RISK_OFF
+
+Three *hard-override* conditions force `RISK_OFF` regardless of composite
+score: (a) persistent yield-curve inversion combined with recession
+probability > 30%; (b) FFR-change regime = AGGRESSIVE_TIGHTENING;
+(c) NFP momentum classification = SEVERE_DECELERATION. These three are
+documented catastrophic-condition triggers (Estrella-Mishkin 1996, Sahm
+2019, Bauer-Swanson 2023).
+
+### 9.3 — Live-data validation (2026-05-20)
+
+Single-day end-to-end read against FRED:
+
+| Indicator               | Value          | Regime / interp                |
+|-------------------------|----------------|--------------------------------|
+| Yield curve T10Y3M      | +0.92 pp       | Not inverted                   |
+| Recession prob (12mo)   | 0.138          | Low (Estrella-Mishkin)         |
+| FFR composite change    | -25 bp         | PAUSE (current EFFR 3.62%)     |
+| DXY z-score (252d)      | -0.63          | DOLLAR_BEAR                    |
+| NFP momentum z          | -0.51          | AT_TREND                       |
+
+Macro composite would integrate to `TRANSITION_UP` band on this snapshot
+(positive curve + pause + weak dollar weighed against slightly-soft
+payrolls). This is consistent with §8.1 — the systemic-stress indices read
+near-zero, the macro layer reads slightly risk-on. No override triggers.
+
+### 9.4 — Use by downstream consumers
+
+The macro engine is intentionally *separable* from the stress engine. Two
+deployment patterns are supported in v0.3:
+
+1. **Independent dashboard.** Render the four sub-indicators plus the
+   composite label on the supervisory dashboard alongside the stress
+   indices. Useful for second-line risk teams who want both a near-term
+   stress reading and a slower-moving regime label.
+
+2. **Stress-index gate / weight.** In a portfolio-risk or stress-test
+   pipeline, the composite regime can multiplicatively scale the position
+   size or the stress-tolerance budget. A reference implementation lives in
+   the private companion repository (`VOLANX/signals/macro_signal_source.py`,
+   not part of CBSRM), but the public composite is sufficient on its own.
+
+The v0.4 release will (a) add CPI-surprise, oil-macro, and a credit-spread
+regime module; (b) add a true Trading-Economics-backed surprise series for
+NFP; (c) ship one persistence-and-recompute notebook reproducing the
+classifier on the 2008 and 2020 recessions.
+
+### 9.5 — Japan and the safe-haven yen
+
+In v0.3 the macro engine adds a fifth sub-indicator —
+``cbsrm.macro.jpy_regime.JPYRegimeIndicator`` — covering the USD/JPY pair
+via FRED ``DEXJPUS``. Japan's inclusion is not cosmetic: Japan is the third-
+largest economy by GDP, the world's largest net external creditor, and the
+funding leg of the global yen carry trade. The yen's role as a safe-haven
+currency means that USD/JPY decompresses (yen strengthens) during global
+risk-off episodes, complementing the broad-USD signal from
+``DXYRegimeIndicator``. Five-state classification (``USD_STRONG_JPY_WEAK``,
+``USD_MILD_BULL_JPY``, ``NEUTRAL``, ``USD_MILD_BEAR_JPY``, ``USD_WEAK_JPY_STRONG``)
+follows the same |z| ≥ 1.5 threshold convention as DXY but with labels
+that name both sides of the pair, since "USD bear" is operationally distinct
+from "JPY safe-haven flight" for portfolio-risk consumers.
+
+The composite regime (``MacroCompositeIndicator``) does not yet aggregate
+JPY into its 4-state classifier — that is deferred to v0.4 once a longer
+window of overlapping observations is available — but the JPY indicator is
+fully usable standalone via the CLI (``cbsrm jpy-regime``) and the FastAPI
+service.
+
+### 9.6 — Multi-language interpretation labels
+
+Every v0.3 macro indicator now ships its ``interpretation`` field in five
+languages: English (``en``), Japanese (``ja``), Spanish (``es``), French
+(``fr``), and German (``de``). The localised labels live in ``cbsrm.i18n``
+and are attached to the indicator metadata under ``interpretation_i18n``
+as a per-locale dict. Dashboards, supervisory reports, and downstream
+consumers can pick the locale at render time without re-running the
+indicator. The translations are reviewed (not machine-translated) and a
+test invariant in the suite ensures every label key has a translation for
+every supported locale.
+
+Multi-language support is the first step toward making CBSRM usable by
+non-anglophone central-bank and supervisory teams. Additional locales
+(zh, ko, pt) are on the v0.5 roadmap.
+
+---
+
 ## Appendix A — CBSRM v0.1 module inventory
 
 ```
