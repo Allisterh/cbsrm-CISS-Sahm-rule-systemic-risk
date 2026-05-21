@@ -30,6 +30,8 @@ the audit chain, dossier renderer, replication harness, and CLI driver are
 all written against that one interface. New macro modules slot into the same
 infrastructure without touching the audit / API / diagnostics layers.
 """
+from cbsrm.macro.cpi_surprise import CPISurpriseIndicator
+from cbsrm.macro.credit_spread_regime import CreditSpreadRegimeIndicator
 from cbsrm.macro.dxy_regime import DXYRegimeIndicator
 from cbsrm.macro.ffr_change import FFRChangeIndicator
 from cbsrm.macro.jpy_regime import JPYRegimeIndicator
@@ -39,6 +41,7 @@ from cbsrm.macro.macro_composite import (
     classify_regime,
 )
 from cbsrm.macro.nfp_momentum import NFPMomentumIndicator
+from cbsrm.macro.oil_macro import OilMacroIndicator
 from cbsrm.macro.yield_curve import (
     YieldCurveIndicator,
     estrella_mishkin_recession_prob,
@@ -51,6 +54,9 @@ __all__ = [
     "FFRChangeIndicator",
     "DXYRegimeIndicator",
     "JPYRegimeIndicator",
+    "CPISurpriseIndicator",
+    "OilMacroIndicator",
+    "CreditSpreadRegimeIndicator",
     "MacroCompositeIndicator",
     "MACRO_REGIMES",
     "classify_regime",

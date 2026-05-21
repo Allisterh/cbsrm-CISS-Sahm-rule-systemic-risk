@@ -31,6 +31,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from pathlib import Path
 from typing import Any
 
 
@@ -47,8 +48,10 @@ def cmd_info(_args: argparse.Namespace) -> int:
         ],
         "macro_indicators": [
             "YIELD-CURVE-US", "NFP-MOMENTUM-US", "FFR-CHANGE-US",
-            "DXY-REGIME-US", "JPY-REGIME", "MACRO-COMPOSITE-US",
+            "DXY-REGIME-US", "JPY-REGIME", "CPI-SURPRISE-US",
+            "OIL-MACRO", "CREDIT-SPREAD-REGIME-US", "MACRO-COMPOSITE-US",
         ],
+        "risk_modules": ["SRISK", "LRMES (Monte Carlo)"],
         "supported_locales": ["en", "ja", "es", "fr", "de"],
         "data_sources": ["FRED", "OFR", "ECB"],
         "builders": ["CISSUSBuilder"],
@@ -422,6 +425,54 @@ def cmd_jpy_regime(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cpi_surprise(args: argparse.Namespace) -> int:
+    from cbsrm.macro import CPISurpriseIndicator
+    df = _fred_macro_fetch(["CPIAUCSL"], args.api_key, args.start, args.end, frequency="m")
+    if df.empty or "CPIAUCSL" not in df.columns:
+        print("[cpi-surprise] no CPIAUCSL data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(CPISurpriseIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_oil_macro(args: argparse.Namespace) -> int:
+    from cbsrm.macro import OilMacroIndicator
+    df = _fred_macro_fetch(["DCOILWTICO"], args.api_key, args.start, args.end, frequency="d")
+    if df.empty or "DCOILWTICO" not in df.columns:
+        print("[oil-macro] no DCOILWTICO data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(OilMacroIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_credit_spread(args: argparse.Namespace) -> int:
+    from cbsrm.macro import CreditSpreadRegimeIndicator
+    df = _fred_macro_fetch(["BAMLH0A0HYM2"], args.api_key, args.start, args.end, frequency="d")
+    if df.empty or "BAMLH0A0HYM2" not in df.columns:
+        print("[credit-spread] no BAMLH0A0HYM2 data from FRED", file=sys.stderr)
+        return 1
+    _emit_macro_result(CreditSpreadRegimeIndicator().compute(df), args.verbose)
+    return 0
+
+
+def cmd_srisk(args: argparse.Namespace) -> int:
+    """Compute SRISK for a hand-supplied panel of firms.
+
+    Inputs come from a JSON file (--input PATH) containing a list of dicts
+    with keys: firm, market_cap_W, book_debt_D, lrmes. Optional: metadata.
+    """
+    from cbsrm.risk import srisk_panel
+    import json as _json
+    raw = _json.loads(Path(args.input).read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        print("[srisk] --input file must contain a JSON list of firm dicts",
+              file=sys.stderr)
+        return 1
+    out = srisk_panel(raw, k=args.k)
+    print(_json.dumps(out, indent=2, default=str))
+    return 0
+
+
 def cmd_macro_regime(args: argparse.Namespace) -> int:
     """Compute the 4-state composite macro regime end-to-end."""
     import pandas as pd
@@ -560,6 +611,36 @@ def main(argv: list[str] | None = None) -> int:
     p_jpy.add_argument("--api-key")
     p_jpy.add_argument("-v", "--verbose", action="store_true")
     p_jpy.set_defaults(func=cmd_jpy_regime)
+
+    p_cpi = sub.add_parser("cpi-surprise",
+                           help="YoY CPI inflation rolling z-score (momentum proxy)")
+    p_cpi.add_argument("--start"); p_cpi.add_argument("--end")
+    p_cpi.add_argument("--api-key")
+    p_cpi.add_argument("-v", "--verbose", action="store_true")
+    p_cpi.set_defaults(func=cmd_cpi_surprise)
+
+    p_oil = sub.add_parser("oil-macro",
+                           help="WTI crude-oil macroeconomic regime")
+    p_oil.add_argument("--start"); p_oil.add_argument("--end")
+    p_oil.add_argument("--api-key")
+    p_oil.add_argument("-v", "--verbose", action="store_true")
+    p_oil.set_defaults(func=cmd_oil_macro)
+
+    p_credit = sub.add_parser("credit-spread",
+                              help="ICE BofA US HY OAS regime classifier")
+    p_credit.add_argument("--start"); p_credit.add_argument("--end")
+    p_credit.add_argument("--api-key")
+    p_credit.add_argument("-v", "--verbose", action="store_true")
+    p_credit.set_defaults(func=cmd_credit_spread)
+
+    p_srisk = sub.add_parser("srisk",
+                             help="Compute SRISK for a JSON panel of firms")
+    p_srisk.add_argument("--input", required=True,
+                         help="Path to JSON file with list of firm dicts "
+                              "(firm, market_cap_W, book_debt_D, lrmes)")
+    p_srisk.add_argument("--k", type=float, default=0.08,
+                         help="Prudential capital ratio (default 0.08)")
+    p_srisk.set_defaults(func=cmd_srisk)
 
     p_macro = sub.add_parser("macro-regime",
                              help="4-state macro composite (RISK_ON / TRANSITION / RISK_OFF)")

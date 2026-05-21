@@ -13,5 +13,5 @@ See cbsrm.data, cbsrm.indicators, cbsrm.network, cbsrm.stress, cbsrm.api,
 cbsrm.audit subpackages. README.md and whitepaper/cbsrm_methodology_v1.md
 describe the full methodology and intended use.
 """
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 __all__ = ["__version__"]

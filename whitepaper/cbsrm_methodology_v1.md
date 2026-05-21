@@ -577,6 +577,105 @@ non-anglophone central-bank and supervisory teams. Additional locales
 
 ---
 
+## 10 — Risk-pricing layer: SRISK (v0.4)
+
+§9 added a macro engine — slower-moving condition variables. §10 adds the
+risk-pricing layer: methodology that *prices* tail outcomes rather than
+*measures* current stress.
+
+### 10.1 — Why SRISK
+
+SRISK (Brownlees & Engle 2017) is the canonical conditional-capital-shortfall
+measure of systemic risk. Where CISS / OFR-FSI / STLFSI4 report "how stressed
+is the system *right now*", SRISK answers "*if a crisis hit tomorrow*, how
+much equity capital would firm *i* need to inject to remain solvent?". The
+two are complementary: stress indices observe contemporaneous market
+behaviour, SRISK pre-prices the equity-capital injection that would be
+required if the contemporaneous behaviour got an order of magnitude worse.
+
+NYU Stern's V-Lab has published SRISK weekly for every globally-systemic
+financial institution since 2010, making it the most-cited single quantity
+in macroprudential supervision (Brownlees-Engle has > 2,000 citations as
+of 2026, and Federal Reserve Board / ECB / Bank of England working papers
+routinely cite V-Lab SRISK in financial-stability reports).
+
+CBSRM v0.4 ships a clean Python reimplementation of the methodology —
+production-grade, audit-traceable, and reproducible against V-Lab numbers
+for any firm where the operator can provide market cap and book debt.
+
+### 10.2 — The SRISK identity
+
+For firm *i*, SRISK is the expected capital shortfall conditional on a
+systemic event:
+
+```
+    SRISK_i = k * D_i - (1 - k) * W_i * (1 - LRMES_i)
+```
+
+where ``k`` is the prudential capital ratio (default 8% for US bank holding
+companies, 4.5% for insurers); ``D_i`` is book debt (book liabilities);
+``W_i`` is current market cap; and ``LRMES_i`` (Long-Run Marginal Expected
+Shortfall) is the expected fraction lost in firm *i*'s equity over the
+crisis horizon (default 6 months / 126 trading days) conditional on the
+market hitting the crisis threshold (default -40%).
+
+### 10.3 — LRMES via GJR-GARCH-DCC Monte Carlo
+
+Computing LRMES requires:
+
+1. A model for firm-and-market joint return dynamics. CBSRM uses bivariate
+   GJR-GARCH(1,1) marginals (asymmetric volatility) + scalar DCC(1,1)
+   correlation dynamics (Engle 2002) — exactly the Brownlees-Engle
+   specification.
+2. Monte Carlo simulation of joint return paths over the crisis horizon.
+3. Conditioning on the subset of paths where the market cumulative
+   return fell below the crisis threshold, and taking the expected firm
+   equity loss within that subset.
+
+The CBSRM implementation lives in
+``cbsrm.risk.garch_dcc_sim.GARCHDCCSimulator`` (pure numpy, no
+``arch``/SciPy/Cython dependency at simulate-time). Parameters are caller-
+supplied; v0.5 will add an ``arch``-backed fitter so the entire pipeline
+can run from raw return histories.
+
+The unit-test suite validates four required properties:
+
+1. Stationarity guard rejects non-stationary parameter sets.
+2. LRMES is monotone in conditional correlation.
+3. LRMES is monotone in volatility.
+4. SRISK is monotone in book debt and LRMES.
+
+### 10.4 — Public adoption pathway
+
+V-Lab's pre-existing SRISK series is the canonical benchmark. CBSRM does
+*not* publish a competing official SRISK number; rather, it gives any
+researcher, regulator, or trading firm the ability to:
+
+* Reproduce V-Lab's SRISK for any firm with public market-cap + book-debt
+  data, validating their internal models.
+* Compute SRISK on non-US firms / sectors that V-Lab does not cover
+  (e.g. EM banks, private credit funds via NAV proxy, large insurance
+  groups with parametric debt).
+* Stress-test SRISK under counterfactual crisis scenarios (e.g. -25%
+  shock, 90-day horizon, doubled correlation) for resilience analysis.
+
+### 10.5 — Roadmap to MES, ΔCoVaR, network-contagion
+
+MES (Marginal Expected Shortfall, the daily-horizon cousin of LRMES) is a
+trivial adaptation of the same Monte Carlo, conditioning on a single-day
+market shock rather than a horizon-cumulative one — planned for v0.5.
+
+ΔCoVaR (Adrian-Brunnermeier 2016) uses quantile regression rather than
+GARCH-DCC and ships as a parallel module. Combined with SRISK, it gives
+CBSRM the two most-cited systemic-risk metrics in supervisory literature.
+
+Network-contagion (DebtRank, Battiston et al. 2012) addresses an
+orthogonal dimension: which firms are *vulnerable* via balance-sheet
+linkages rather than via co-movement. The ``marcobardoscia/neva`` reference
+implementation is the target integration point — planned for v0.5.
+
+---
+
 ## Appendix A — CBSRM v0.1 module inventory
 
 ```
