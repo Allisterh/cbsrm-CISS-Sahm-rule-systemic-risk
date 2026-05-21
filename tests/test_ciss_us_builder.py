@@ -153,11 +153,18 @@ def test_build_passes_kwargs_to_fred():
     fake = FakeFRED(n_obs=100)
     b = CISSUSBuilder(fake)
     b.build(start="2020-01-01", end="2024-01-01", frequency="m")
-    assert len(fake.calls) == 1
-    call = fake.calls[0]
-    assert call["observation_start"] == "2020-01-01"
-    assert call["observation_end"] == "2024-01-01"
-    assert call["frequency"] == "m"
+    # v0.3.1: build() now makes TWO fetches — main panel + quarterly SLOOS
+    # series at native cadence (frequency omitted for the latter so FRED
+    # returns them quarterly instead of 400-ing on freq=w/m).
+    assert len(fake.calls) == 2
+    main_call = next(c for c in fake.calls if "frequency" in c and c.get("frequency") == "m")
+    assert main_call["observation_start"] == "2020-01-01"
+    assert main_call["observation_end"] == "2024-01-01"
+    assert main_call["frequency"] == "m"
+    # Quarterly call must NOT include the frequency kwarg
+    quarterly_call = next(c for c in fake.calls if "frequency" not in c)
+    assert "DRTSCILM" in quarterly_call["series_ids"]
+    assert "DRTSCLCC" in quarterly_call["series_ids"]
 
 
 # ─── Recipes ──────────────────────────────────────────────────────────

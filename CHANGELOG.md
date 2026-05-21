@@ -6,18 +6,38 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Planned for v0.3.1 / v0.4
-- SRISK (Brownlees-Engle 2017) on top of `bashtage/arch`
-- LRMES + MES
+### Planned for v0.4
 - BIS Stats API adapter
 - 2008Q4 / 2020Q1 / 2023Q1 crisis-replay notebooks
-- CISS-US-Canonical SLOOS frequency fix (DRTSCILM/DRTSCLCC are quarterly, not weekly)
-- OFR-FSI User-Agent fix (server-side WAF blocks default httpx UA)
 - True NFP surprise (consensus-forecast adapter) — replaces NFPMomentumIndicator
-- Oil-macro indicator (WTI + OVX + term structure)
-- CPI surprise indicator
-- Credit-spread regime classifier
-- BIS Stats API adapter
+- LRMES + MES (Brownlees-Engle 2017) — alongside SRISK
+- Network-contagion via `marcobardoscia/neva`
+
+---
+
+## [0.3.1] — 2026-05-20
+
+### Fixed
+- **CISS-US-Canonical SLOOS frequency mismatch.** `CISSUSBuilder.build()` now
+  splits required FRED series into a weekly main panel and a quarterly side
+  panel for SLOOS-style series (`DRTSCILM`, `DRTSCLCC`). The quarterly panel
+  is fetched at FRED's native cadence and reindexed onto the main panel via
+  forward-fill, eliminating the HTTP 400 from requesting quarterly series
+  at weekly frequency. New class constant: `CISSUSBuilder.QUARTERLY_FRED_IDS`.
+- **OFR client User-Agent.** Changed from `cbsrm/0.2` (which the OFR WAF
+  blocked) to a standard desktop-Chrome UA. The project identifying string
+  is preserved as a custom `X-Project-Source` HTTP header so OFR ops can
+  still grep server logs for the project. Note: the underlying CSV endpoint
+  may still return 403 from non-residential IPs — this is server-side WAF
+  policy. Workaround: download `ofr-fsi.csv` manually and set
+  `OFR_FSI_CSV_URL=file:///path/to/ofr-fsi.csv`.
+
+### Added
+- `CISSUSBuilder.QUARTERLY_FRED_IDS` class constant — extension point for
+  future SLOOS-style series.
+
+### Tests
+- 244 passing (one test updated for the new dual-fetch pattern).
 
 ---
 

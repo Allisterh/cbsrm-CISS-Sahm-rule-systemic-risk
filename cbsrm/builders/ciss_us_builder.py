@@ -284,6 +284,11 @@ class CISSUSBuilder:
             ids.update(s.fred_ids)
         return sorted(ids)
 
+    # FRED series IDs that are published at lower-than-weekly cadence.
+    # Requesting these at frequency="w" returns HTTP 400. v0.3.1 fix: fetch
+    # them at native frequency and reindex onto the main panel via ffill.
+    QUARTERLY_FRED_IDS: tuple[str, ...] = ("DRTSCILM", "DRTSCLCC")
+
     def build(
         self,
         start: str | None = None,
@@ -294,16 +299,36 @@ class CISSUSBuilder:
         freq = frequency or self.config.default_frequency
         specs = self.specs()
 
-        # Fetch every required FRED series once
+        # Split required series into two cadences:
+        # - main panel at the requested frequency
+        # - quarterly panel for SLOOS-style series (FRED rejects freq=w for them)
         unique_ids = self.required_fred_series()
-        log.info(f"CISSUSBuilder: fetching {len(unique_ids)} FRED series")
+        quarterly_ids = [s for s in unique_ids if s in self.QUARTERLY_FRED_IDS]
+        main_ids = [s for s in unique_ids if s not in self.QUARTERLY_FRED_IDS]
+        log.info(
+            f"CISSUSBuilder: fetching {len(main_ids)} FRED series at freq={freq}"
+            + (f" + {len(quarterly_ids)} at native (quarterly)" if quarterly_ids else "")
+        )
         raw_panel = self.fred.get_multi(
-            unique_ids,
+            main_ids,
             observation_start=start,
             observation_end=end,
             frequency=freq,
             aggregation_method=self.config.default_aggregation,
         )
+        # Fetch quarterly series at native cadence and reindex onto main panel
+        if quarterly_ids:
+            q_panel = self.fred.get_multi(
+                quarterly_ids,
+                observation_start=start,
+                observation_end=end,
+                # Omit frequency to use FRED native (quarterly for these)
+                aggregation_method=self.config.default_aggregation,
+            )
+            if not q_panel.empty:
+                aligned_q = q_panel.reindex(raw_panel.index, method="ffill")
+                for col in aligned_q.columns:
+                    raw_panel[col] = aligned_q[col]
 
         # Apply each recipe
         out = pd.DataFrame(index=raw_panel.index)

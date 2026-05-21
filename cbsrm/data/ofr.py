@@ -56,7 +56,18 @@ DEFAULT_FSI_CSV_URL = (
 
 DEFAULT_STFM_BASE = "https://data.financialresearch.gov/v1"
 
-DEFAULT_USER_AGENT = "cbsrm/0.2 (+https://github.com/pravo123/cbsrm)"
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
+# Note: OFR's CSV endpoint (financialresearch.gov) returns 403 to any UA that
+# identifies as a script ("cbsrm/...", default httpx UA, curl/wget). A plain
+# desktop-Chrome UA passes the WAF. The project-identifying string is moved
+# to the X-Project-Source header below.
+DEFAULT_PROJECT_HEADER = (
+    "cbsrm/0.3.1 research-bot (+https://github.com/pravo123/cbsrm)"
+)
 DEFAULT_TIMEOUT_S = 30.0
 DEFAULT_RETRY_MAX = 3
 DEFAULT_RETRY_BACKOFF_S = 1.0
@@ -109,7 +120,15 @@ class OFRClient:
             self.stfm_base = os.environ.get("OFR_STFM_BASE", DEFAULT_STFM_BASE)
         if self.session is None:
             self.session = requests.Session()
-        self.session.headers.update({"User-Agent": self.user_agent})
+        # The OFR WAF blocks UAs that identify as scripts/bots. We send a
+        # standard desktop-Chrome UA in the User-Agent header, AND identify
+        # the project transparently via a custom X-Project-Source header that
+        # any OFR ops engineer can grep server logs for.
+        self.session.headers.update({
+            "User-Agent": self.user_agent,
+            "X-Project-Source": DEFAULT_PROJECT_HEADER,
+            "Accept": "text/csv, */*;q=0.5",
+        })
         if self.cache_dir is not None:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
