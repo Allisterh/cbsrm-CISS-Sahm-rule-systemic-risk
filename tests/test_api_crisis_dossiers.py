@@ -19,7 +19,8 @@ from __future__ import annotations
 
 import pytest
 
-fastapi = pytest.importorskip("fastapi")
+pytest.importorskip("fastapi")
+pytest.importorskip("httpx")
 from fastapi.testclient import TestClient  # noqa: E402  (after importorskip)
 
 from cbsrm.api.routes import build_app
