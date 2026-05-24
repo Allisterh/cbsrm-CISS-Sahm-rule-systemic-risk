@@ -59,12 +59,24 @@ Public surface (v0.9 work in progress)
   from a manifest dict.
 * :data:`AUDIT_EVENT_KIND` — the string ``"REPORT_EXPORTED"`` used as
   the audit-chain ``kind`` for report exports.
+* :func:`init_report_store`, :func:`store_report_artifact`,
+  :func:`get_report_artifact`, :func:`list_report_artifacts` —
+  content-addressed sqlite store keyed on the manifest
+  ``output_sha256``. Single-operator scope; stdlib only.
+* :data:`REPORT_STORE_VERSION` — semantic version of the store spec.
 """
 from cbsrm.reporting.audit_manifest import (
     AUDIT_EVENT_KIND,
     manifest_subject,
     stamp_manifest_to_chain,
     stamp_manifest_to_db_path,
+)
+from cbsrm.reporting.persistence import (
+    REPORT_STORE_VERSION,
+    get_report_artifact,
+    init_report_store,
+    list_report_artifacts,
+    store_report_artifact,
 )
 from cbsrm.reporting.html_renderer import (
     HTML_RENDERER_VERSION,
@@ -108,4 +120,9 @@ __all__ = [
     "stamp_manifest_to_db_path",
     "manifest_subject",
     "AUDIT_EVENT_KIND",
+    "init_report_store",
+    "store_report_artifact",
+    "get_report_artifact",
+    "list_report_artifacts",
+    "REPORT_STORE_VERSION",
 ]
