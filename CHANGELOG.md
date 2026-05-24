@@ -16,6 +16,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Intended as *decision intelligence*, not a trading signal — coarse `risk_bias` mapping, in-line band defaults to |z| < 0.25 = `neutral`.
 - 23 tests in `tests/test_macro_events.py`.
 
+**`cbsrm.diagnostics.macro_replay` — windowed price reaction around macro events**
+- `replay_macro_events(events_df, prices_df, pre_window_days=5, post_window_days=5)` composes `macro_events.score_event` with as-of-or-prior price lookups on a wide-form price panel, returning a long-form DataFrame keyed by `(event, price_series)` with `surprise`, `surprise_z`, `direction`, `severity`, `risk_bias`, and pre/post log returns. Pure function, no I/O.
+- Runnable walkthrough at `notebooks/crisis_replay/macro_event_replay.py` driving deterministic fixtures (`fixtures/events.csv` mixing CPI/NFP/UNRATE 2023-2024, `fixtures/prices.csv` covering all event dates ± 15 days for SPY_PROXY / TLT_PROXY).
+- 10 tests in `tests/test_macro_replay.py` covering returned schema, hotter-direction propagation, hand-calculated pre/post log returns on a linear ramp, missing-column / empty-input / non-positive-window / non-DataFrame `ValueError` paths, fixture round-trip, and unknown-event passthrough.
+
 ### Planned for v0.8 (remaining)
 - 2008Q4 / 2020Q1 / 2023Q1 crisis-replay notebooks (will consume `macro_events`)
 - Network-contagion via `marcobardoscia/neva` (DebtRank)

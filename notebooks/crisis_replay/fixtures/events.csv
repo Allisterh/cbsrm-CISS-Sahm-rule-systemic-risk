@@ -1,0 +1,9 @@
+event,date,actual,consensus,previous,unit
+CPI,2023-02-14,6.4,6.2,6.5,yoy_pct
+NFP,2023-06-02,339.0,195.0,294.0,thousands_jobs
+UNRATE,2023-06-02,3.7,3.5,3.4,pct
+CPI,2023-09-13,3.7,3.6,3.2,yoy_pct
+NFP,2024-02-02,353.0,180.0,333.0,thousands_jobs
+UNRATE,2024-02-02,3.7,3.7,3.7,pct
+CPI,2024-05-15,3.4,3.4,3.5,yoy_pct
+NFP,2024-08-02,114.0,175.0,179.0,thousands_jobs
