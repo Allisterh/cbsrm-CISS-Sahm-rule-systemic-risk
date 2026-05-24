@@ -30,7 +30,24 @@ Public surface (v0.8)
   spec (independent of the dossier spec).
 * :data:`NFA_DISCLAIMER` — canonical "not financial advice" boilerplate
   appended to every Markdown report.
+
+Public surface (v0.9 work in progress)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* :func:`get_report_catalog` — return the full JSON-serializable
+  catalog of available reports.
+* :func:`list_report_ids` — alphabetical list of registered report ids.
+* :func:`get_report_metadata` — metadata for one report; raises
+  :class:`ValueError` for unknown ids.
+* :data:`REPORT_REGISTRY_VERSION` — semantic version of the registry
+  spec (independent of the renderer and dossier specs).
 """
+from cbsrm.reporting.registry import (
+    REPORT_REGISTRY_VERSION,
+    get_report_catalog,
+    get_report_metadata,
+    list_report_ids,
+)
 from cbsrm.reporting.report_renderer import (
     NFA_DISCLAIMER,
     REPORT_RENDERER_VERSION,
@@ -43,4 +60,8 @@ __all__ = [
     "build_report_payload",
     "REPORT_RENDERER_VERSION",
     "NFA_DISCLAIMER",
+    "get_report_catalog",
+    "list_report_ids",
+    "get_report_metadata",
+    "REPORT_REGISTRY_VERSION",
 ]

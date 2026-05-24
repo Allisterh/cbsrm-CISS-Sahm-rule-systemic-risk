@@ -116,6 +116,25 @@ def build_app(audit_conn: sqlite3.Connection | None = None):
             )
         return {"chain_ok": True, "broken_row_ids": []}
 
+    # ─── Report catalog (read-only) ─────────────────────────────────
+    #
+    # Thin pass-through over `cbsrm.reporting.get_report_catalog()`.
+    # Returns a deterministic JSON catalog of available reports —
+    # metadata only, no report is executed. The catalog itself is
+    # versioned independently by `REPORT_REGISTRY_VERSION`.
+
+    @app.get("/reports", tags=["reports"])
+    def list_reports() -> dict[str, Any]:
+        """Return the deterministic catalog of available reports.
+
+        Shape: ``{"reports": [{"id": ..., "title": ..., "description":
+        ..., "formats": [...], "windows": [...], "surfaces": {...}}]}``.
+        Calling this endpoint never executes a report.
+        """
+        from cbsrm.reporting import get_report_catalog
+
+        return get_report_catalog()
+
     # ─── v0.8 crisis-window reports (read-only) ─────────────────────
     #
     # Thin mirror of the CLI `crisis-dossier` surface. Pure composition

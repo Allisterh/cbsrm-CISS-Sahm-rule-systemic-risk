@@ -15,6 +15,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > passing. Source versions in `pyproject.toml` / `cbsrm/__init__.py` are
 > deferred for a single bump at the v0.8.0 final tag.
 
+### Added — v0.9 work in progress
+
+**`cbsrm.reporting.registry` — deterministic report catalog**
+- New module `cbsrm/reporting/registry.py` exposing `get_report_catalog()`, `list_report_ids()`, `get_report_metadata(report_id)`, and `REPORT_REGISTRY_VERSION = "1.0.0"`. Pure metadata layer — never executes a report, never touches the network, never writes to disk. All return values are fresh deep copies, JSON-serializable, deterministic.
+- Bridges the v0.8 hardcoded `crisis-dossier` surface toward a future SaaS-style report catalog. For each report the catalog returns `id`, `title`, `description`, `formats`, `windows`, and `surfaces` (CLI invocation, API routes, Streamlit command). For `crisis-dossier`, `windows` is sourced live from `cbsrm.diagnostics.list_dossier_windows()` so the catalog cannot drift as new dossier fixtures land.
+- `get_report_metadata` raises `ValueError` with the supported-id list for unknown ids, mirroring the `get_fixture_snapshot` error contract elsewhere in the package.
+- New public re-exports from `cbsrm.reporting.__init__`: `get_report_catalog`, `list_report_ids`, `get_report_metadata`, `REPORT_REGISTRY_VERSION`. Existing renderer surface (`render_dossier_markdown`, `build_report_payload`, `REPORT_RENDERER_VERSION`, `NFA_DISCLAIMER`) unchanged.
+
+**`cbsrm.api.routes` — read-only catalog endpoint**
+- `GET /reports` → `{"reports": [...]}` JSON catalog, using the same lazy-FastAPI route style as the rest of `cbsrm/api/routes.py`. Pure pass-through over `cbsrm.reporting.get_report_catalog()`. Does not execute any report, does not change any existing endpoint, does not introduce a new dependency.
+- Existing `/reports/crisis-dossiers`, `/reports/crisis-dossiers/{window_id}`, and `/reports/crisis-dossiers/{window_id}/markdown` routes preserved bit-for-bit.
+
 ### Added — v0.8 work in progress
 
 **`dashboard/crisis_dossier_viewer.py` — offline Streamlit crisis-dossier viewer**
