@@ -6,6 +6,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+> **Status:** v0.8 surface is at release candidate `v0.8.0-rc6` (annotated
+> tag pushed; latest merge `7e4842c`). All six research-flow stages and
+> the report renderer are landed, plus three front-ends with bit-for-bit
+> parity: the `cbsrm crisis-dossier` CLI export command, three read-only
+> FastAPI `/reports/crisis-dossiers/…` routes, and a standalone offline
+> Streamlit page (`dashboard/crisis_dossier_viewer.py`). 555/555 tests
+> passing. Source versions in `pyproject.toml` / `cbsrm/__init__.py` are
+> deferred for a single bump at the v0.8.0 final tag.
+
 ### Added — v0.8 work in progress
 
 **`dashboard/crisis_dossier_viewer.py` — offline Streamlit crisis-dossier viewer**

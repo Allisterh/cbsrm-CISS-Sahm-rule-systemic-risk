@@ -4,8 +4,8 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-316_passing-brightgreen.svg)](#tests)
-[![Version](https://img.shields.io/badge/version-0.5.0-blueviolet.svg)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-555_passing-brightgreen.svg)](#tests)
+[![Version](https://img.shields.io/badge/version-0.8.0--rc6-blueviolet.svg)](CHANGELOG.md)
 [![Whitepaper](https://img.shields.io/badge/whitepaper-12_sections-orange.svg)](whitepaper/cbsrm_methodology_v1.md)
 
 CBSRM reproduces, in modern typed Python, the canonical systemic-risk and financial-stability measures used by central banks, supervisory authorities, and the academic literature — under one Protocol, one audit chain, and one reproducibility guarantee. Apache 2.0.
@@ -25,13 +25,24 @@ CBSRM reproduces, in modern typed Python, the canonical systemic-risk and financ
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-## What's inside (v0.5.0)
+## What's inside (v0.8.0-rc6)
 
 | Layer | Modules | Reference |
 |-------|---------|-----------|
 | **Stress indicators** | CISS-US, ECB CISS (EA / US / UK), STLFSI4, OFR-FSI | Holló-Kremer-Lo Duca (2012) |
-| **Macro engine** | Yield curve + recession probit, NFP momentum, FFR change, broad-USD regime, USD/JPY regime, CPI surprise, oil macro, credit-spread regime, 4-state composite | Estrella-Mishkin (1996), Bruno-Shin (2015), Hamilton (2003), Gilchrist-Zakrajsek (2012) |
+| **Macro engine** | Yield curve + recession probit, NFP momentum, FFR change, broad-USD regime, USD/JPY regime, CPI surprise, oil macro, credit-spread regime, Sahm Rule, 4-state composite | Estrella-Mishkin (1996), Bruno-Shin (2015), Hamilton (2003), Gilchrist-Zakrajsek (2012), Sahm (2019) |
 | **Risk pricing** | SRISK + LRMES, ΔCoVaR, MES | Brownlees-Engle (2017), Adrian-Brunnermeier (2016), Acharya et al. (2017) |
+| **Cross-border (v0.6)** | BIS Stats SDMX adapter, OTC derivatives notional, consolidated banking statistics | BIS Statistics |
+| **Connectedness (v0.7)** | Diebold-Yilmaz spillover index (Pesaran-Shin GFEVD) | Diebold-Yilmaz (2012) |
+| **Macro events (v0.8)** | `score_event` discrete-event surprise scorer (12 prints: CPI / CORE_CPI / PCE / NFP / UNRATE / INITIAL_CLAIMS / GDP / RETAIL_SALES / ISM_MFG / ISM_SVCS / FOMC_RATE) | Andersen-Bollerslev-Diebold-Vega (2003) |
+| **Replay (v0.8)** | `replay_macro_events` windowed pre/post log-return surface around macro prints | Original |
+| **Network systemic risk (v0.8)** | `debt_rank` pure-numpy DebtRank engine + U/D/I state-machine cascade | Battiston et al. (2012) |
+| **Phase classifier (v0.8)** | `classify_phase` Acemoglu-style 8-phase deterministic labeller | Acemoglu-Ozdaglar-Tahbaz-Salehi (2015) |
+| **Crisis dossiers (v0.8)** | `build_crisis_dossier` deterministic fixture-backed bundles for 2008Q4 / 2020Q1 / 2023Q1 | Original |
+| **Report renderer (v0.8)** | `render_dossier_markdown` + `build_report_payload` Markdown + JSON-serializable export surface | Original |
+| **CLI export (v0.8)** | `cbsrm crisis-dossier WINDOW [--format json\|markdown] [--title-prefix TEXT]` (UTF-8-safe, offline) | Original |
+| **HTTP API (v0.8)** | `GET /reports/crisis-dossiers`, `GET /reports/crisis-dossiers/{id}`, `GET /reports/crisis-dossiers/{id}/markdown` (read-only, no auth, lazy FastAPI import) | Original |
+| **Streamlit viewer (v0.8)** | `dashboard/crisis_dossier_viewer.py` standalone offline page — selectbox + inline Markdown + `.md`/`.json` downloads | Original |
 | **Audit + diagnostics** | sha256-linked lifecycle ledger, cross-source replication harness, crisis-window replay | Original |
 | **Five jurisdictions** | US / Euro-Area / UK / Japan / broad-USD | — |
 | **Five languages** | EN / JA / ES / FR / DE | Reviewed translations |
@@ -86,7 +97,7 @@ CBSRM is the public half of a paired system. The private companion (VolanX) appl
 
 ```bash
 pytest tests/ -v
-# 316 passing in <5s; all HTTP mocked; Monte Carlo seeded for determinism.
+# 555 passing in <20s; all HTTP mocked; Monte Carlo seeded for determinism.
 ```
 
 ## Whitepaper
@@ -117,7 +128,7 @@ If CBSRM informs research or supervisory work, please cite:
   year         = {2026},
   publisher    = {GitHub / WaverVanir International},
   url          = {https://github.com/pravo123/cbsrm},
-  note         = {Apache 2.0; version 0.5.0}
+  note         = {Apache 2.0; version 0.8.0-rc6}
 }
 ```
 
@@ -125,17 +136,19 @@ SSRN abstract + JEL codes: see [`SSRN_SUBMISSION.md`](SSRN_SUBMISSION.md).
 
 ## Roadmap
 
-**v0.6** (next):
-- BIS Stats API adapter (cross-border banking, derivatives notional, FX turnover)
-- Network-contagion via DebtRank ([`marcobardoscia/neva`](https://github.com/marcobardoscia/neva))
-- `arch`-backed GJR-GARCH-DCC fitter (end-to-end SRISK / MES from raw return histories)
-- Crisis-replay notebooks (2008Q4, 2020Q1, 2023Q1)
+**Shipped through v0.8.0-rc6:**
+- v0.6 — BIS Stats SDMX adapter (OTC derivatives, consolidated banking statistics) + Streamlit dashboard
+- v0.7 — Sahm Rule + Diebold-Yilmaz spillover index
+- v0.8 — macro event surprise scorer, windowed macro replay, pure-numpy DebtRank, Acemoglu-style phase classifier, deterministic crisis-window dossiers, Markdown + JSON report renderer, plus three front-ends sharing the same composition: CLI (`cbsrm crisis-dossier`), read-only HTTP API (`/reports/crisis-dossiers`), and standalone offline Streamlit viewer (`dashboard/crisis_dossier_viewer.py`)
 
-**v0.7+:**
-- Diebold-Yilmaz spillover index
-- Acemoglu phase classifier
-- Streamlit dashboard
-- Cross-jurisdiction integrator
+**Remaining for v0.8 final:**
+- `arch`-backed GJR-GARCH-DCC fitter (end-to-end SRISK / MES from raw return histories)
+- BIS LBS (locational banking statistics) + EER (effective exchange rates) adapters
+
+**v0.9+ (planned):**
+- Composer layer — unified `PipelineRecord` shape, uniform date convention, uniform identifier/version contract across the v0.8 stages
+- Cross-jurisdiction integrator (EUR / GBP / JPY events propagating into USD-asset connectedness)
+- PDF generation + file-persistence + SaaS download surface on top of the v0.8 report renderer
 
 ## Contributing
 
@@ -149,12 +162,37 @@ This work compounds when applied. Substantive conversations with quant research 
 
 Apache 2.0 — see [`LICENSE`](LICENSE).
 
-## v0.8 research flow (work in progress)
+## v0.8 launch (release candidate `v0.8.0-rc6`)
 
-The v0.8 series chains four modules into a single narrative —
+The v0.8 research flow is fully landed on `main`, with three front-ends
+sharing one composition:
+
 **macro shock (`score_event`) → crisis replay (`replay_macro_events`) →
 cross-asset connectedness (`DYSpilloverIndicator`) → systemic DebtRank
-(`debt_rank`)**. End-to-end walkthrough, runnable code blocks, and the
-current API-consistency gap list are in
-[`docs/v0.8_research_flow.md`](docs/v0.8_research_flow.md). Stages 2 and 4
-land on `main` from parallel branches before the v0.8 tag.
+(`debt_rank`) → phase classifier (`classify_phase`) → crisis dossier
+(`build_crisis_dossier`) → report renderer
+(`render_dossier_markdown` + `build_report_payload`)**
+
+…served identically through:
+
+| Front-end | Command |
+|---|---|
+| **CLI**       | `cbsrm crisis-dossier WINDOW --format json\|markdown [--title-prefix TEXT]` |
+| **HTTP API**  | `GET /reports/crisis-dossiers`, `…/{window_id}`, `…/{window_id}/markdown` |
+| **Streamlit** | `streamlit run dashboard/crisis_dossier_viewer.py` |
+
+All three are deterministic, fixture-backed, offline (no FRED key, no
+network), and return bit-for-bit identical reports for the same window.
+
+End-to-end walkthrough, runnable code blocks for every stage, and the
+current API-consistency gap list (pre-flagged for the planned v0.9
+composer layer) are in
+[`docs/v0.8_research_flow.md`](docs/v0.8_research_flow.md).
+
+**Positioning.** The v0.8 surface is **research analytics**:
+deterministic / offline / fixture-backed, with explicit no-I/O
+regression tests on the new modules. Suitable for SSRN figures,
+dashboard tiles, and SaaS-tier report generation. **Not financial
+advice; no live broker / Telegram / credential / execution wiring** —
+operators wiring the outputs into a live system must add their own
+risk controls.
