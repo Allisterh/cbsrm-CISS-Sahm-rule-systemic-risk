@@ -88,6 +88,13 @@ from cbsrm.reporting.manifest import (
     sha256_jsonable,
     sha256_text,
 )
+from cbsrm.reporting.macro_composite_report import (
+    MACRO_COMPOSITE_REPORT_VERSION,
+    MACRO_COMPOSITE_WINDOWS,
+    build_macro_composite_report,
+    list_macro_composite_windows,
+    render_macro_composite_markdown,
+)
 from cbsrm.reporting.registry import (
     REPORT_REGISTRY_VERSION,
     get_report_catalog,
@@ -125,4 +132,9 @@ __all__ = [
     "get_report_artifact",
     "list_report_artifacts",
     "REPORT_STORE_VERSION",
+    "build_macro_composite_report",
+    "list_macro_composite_windows",
+    "render_macro_composite_markdown",
+    "MACRO_COMPOSITE_REPORT_VERSION",
+    "MACRO_COMPOSITE_WINDOWS",
 ]

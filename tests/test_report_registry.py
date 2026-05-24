@@ -247,20 +247,25 @@ def test_macro_composite_metadata_is_complete():
     assert meta["id"] == "macro-composite"
     assert meta["title"]  # non-empty
     assert meta["description"]
-    assert meta["formats"] == ["json"]
+    assert meta["formats"] == ["json", "markdown"]
     surfaces = meta["surfaces"]
     assert surfaces["cli"] == "cbsrm reports"
     assert surfaces["api"] == ["GET /reports"]
     assert "report_catalog_viewer.py" in surfaces["streamlit"]
 
 
-def test_macro_composite_windows_are_empty_by_design():
-    """macro-composite is metadata-only with no fixture-backed window
-    set. The empty windows list is the contract — if a future slice
-    adds a window set, both the registry and this assertion must be
-    updated together."""
+def test_macro_composite_windows_match_pinned_set():
+    """macro-composite is now Python-executable and pins the same
+    canonical 3-window set as the crisis-dossier report. The pinned
+    list is sourced live from
+    :func:`cbsrm.reporting.list_macro_composite_windows`, so if a
+    future slice ships a new fixture both the registry and this
+    assertion update together."""
+    from cbsrm.reporting import list_macro_composite_windows
+
     meta = get_report_metadata("macro-composite")
-    assert meta["windows"] == []
+    assert meta["windows"] == ["2008Q4", "2020Q1", "2023Q1"]
+    assert meta["windows"] == list_macro_composite_windows()
 
 
 def test_catalog_lists_both_reports_in_deterministic_order():

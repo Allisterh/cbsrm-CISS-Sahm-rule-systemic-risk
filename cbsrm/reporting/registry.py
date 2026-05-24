@@ -85,33 +85,40 @@ def _crisis_dossier_entry() -> dict[str, Any]:
 def _macro_composite_entry() -> dict[str, Any]:
     """Build the macro-composite registry entry.
 
-    Metadata-only: the v0.9 registry lists this report so the catalog
-    abstraction is exercised with a real second entry, but the report
-    has no fixture-backed window set and no dedicated executable
-    surface yet. ``windows`` is empty by design. Operators run a macro
-    classification directly via :func:`cbsrm.macro.classify_regime` /
-    :func:`cbsrm.macro.classify_phase` on their own feature data.
-
-    The ``surfaces`` field deliberately points back at the catalog
-    endpoints (``cbsrm reports`` / ``GET /reports`` / the landing-page
-    Streamlit command) rather than fabricating per-report endpoints
-    that do not exist on top of v0.8.
+    Now Python-executable through
+    :func:`cbsrm.reporting.build_macro_composite_report`. The v0.9
+    first cut is phase-classifier-only — it composes
+    :func:`cbsrm.macro.classify_phase` over pinned per-window
+    z-scores. Integration with :func:`cbsrm.macro.classify_regime`
+    (which needs sub-indicator metadata dicts not yet pinned per
+    window) is deferred to a follow-up slice. CLI / API / Streamlit
+    execution surfaces are also deferred — the ``surfaces`` field
+    still points at the catalog-level endpoints until those slices
+    land.
     """
+    # Lazy import keeps cbsrm.reporting.registry import-safe in any
+    # environment where the macro-composite report module may not yet
+    # be wired (defensive — both modules ship together today).
+    from cbsrm.reporting.macro_composite_report import (
+        list_macro_composite_windows,
+    )
+
     return {
         "id": "macro-composite",
         "title": "Macro Composite Snapshot",
         "description": (
-            "Caller-driven macro-regime classification snapshot composed "
-            "from the v0.7 macro composite (yield curve / NFP momentum / "
-            "FFR / DXY) and the v0.8 phase classifier. Metadata-only "
-            "entry in the v0.9 registry: there is no fixture-backed "
-            "window set and no dedicated executable surface yet. "
-            "Operators run a classification directly via "
-            "cbsrm.macro.classify_regime and cbsrm.macro.classify_phase "
-            "on their own feature data."
+            "Deterministic, fixture-backed macro-composite snapshot. "
+            "Now Python-executable through "
+            "cbsrm.reporting.build_macro_composite_report(window_id). "
+            "The v0.9 first cut is phase-classifier-only: it composes "
+            "cbsrm.macro.classify_phase over pinned per-window z-scores "
+            "for the same canonical windows as the crisis-dossier "
+            "report (2008Q4 / 2020Q1 / 2023Q1). Integration with "
+            "cbsrm.macro.classify_regime, plus CLI / API / Streamlit "
+            "execution surfaces, are deferred to follow-up slices."
         ),
-        "formats": ["json"],
-        "windows": [],
+        "formats": ["json", "markdown"],
+        "windows": list(list_macro_composite_windows()),
         "surfaces": {
             "cli": "cbsrm reports",
             "api": ["GET /reports"],
