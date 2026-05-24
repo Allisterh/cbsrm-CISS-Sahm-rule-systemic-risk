@@ -352,6 +352,88 @@ def build_app(
             media_type="text/html; charset=utf-8",
         )
 
+    # ─── v0.9 macro-composite report (read-only, first cut) ─────────
+    #
+    # Sibling of the crisis-dossier surface: three routes mirroring
+    # `/reports/crisis-dossiers*` shape — list endpoint, JSON detail
+    # endpoint, and Markdown detail endpoint. Pure pass-through over
+    # `cbsrm.reporting.build_macro_composite_report` and
+    # `cbsrm.reporting.render_macro_composite_markdown`. No
+    # manifest/audit/store query params in this slice — those stay
+    # deferred behind the existing generic helpers and can layer in
+    # later without changing these route signatures.
+
+    def _resolve_macro_composite_or_404(window_id: str) -> dict[str, Any]:
+        """Build a macro-composite report for ``window_id`` or raise
+        a 404 with the supported-window list. Centralised so JSON and
+        Markdown routes share the same error contract."""
+        from cbsrm.reporting import (
+            build_macro_composite_report,
+            list_macro_composite_windows,
+        )
+
+        supported = list_macro_composite_windows()
+        if window_id not in supported:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": f"unknown macro-composite window '{window_id}'",
+                    "window_id": window_id,
+                    "supported_windows": list(supported),
+                },
+            )
+        try:
+            return build_macro_composite_report(window_id)
+        except ValueError as exc:
+            # Defence in depth — the membership check above should make
+            # this unreachable, but if the builder shape ever drifts the
+            # API still fails clean (no traceback leak).
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": str(exc),
+                    "window_id": window_id,
+                    "supported_windows": list(supported),
+                },
+            ) from None
+
+    @app.get("/reports/macro-composite", tags=["reports"])
+    def list_macro_composite() -> dict[str, Any]:
+        """List the supported macro-composite window IDs."""
+        from cbsrm.reporting import list_macro_composite_windows
+
+        return {"windows": list_macro_composite_windows()}
+
+    @app.get(
+        "/reports/macro-composite/{window_id}", tags=["reports"],
+    )
+    def get_macro_composite(window_id: str) -> dict[str, Any]:
+        """Return the deterministic macro-composite JSON report for
+        one canonical window. Body is byte-identical to
+        ``cbsrm macro-composite WINDOW`` (default ``--format json``).
+        """
+        return _resolve_macro_composite_or_404(window_id)
+
+    @app.get(
+        "/reports/macro-composite/{window_id}/markdown",
+        tags=["reports"],
+        response_class=None,  # set per-call below
+    )
+    def get_macro_composite_markdown(window_id: str):
+        """Return the Markdown macro-composite report for one window.
+
+        Media type: ``text/markdown; charset=utf-8``. Body is identical
+        to ``cbsrm macro-composite WINDOW --format markdown``.
+        """
+        from fastapi.responses import PlainTextResponse
+        from cbsrm.reporting import render_macro_composite_markdown
+
+        report = _resolve_macro_composite_or_404(window_id)
+        return PlainTextResponse(
+            content=render_macro_composite_markdown(report),
+            media_type="text/markdown; charset=utf-8",
+        )
+
     # ─── Report-artifact store lookup (v0.9) ────────────────────────
     #
     # Read-only fetch by ``output_sha256`` from the operator-configured
