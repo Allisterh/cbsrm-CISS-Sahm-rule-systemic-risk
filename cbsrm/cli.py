@@ -762,25 +762,20 @@ def cmd_crisis_dossier(args: argparse.Namespace) -> int:
 
     if audit_db_path is not None:
         assert manifest is not None  # for type checkers
-        import sqlite3
+        from cbsrm.reporting import stamp_manifest_to_db_path
 
-        from cbsrm.audit.chain import AuditChain
-        from cbsrm.reporting import stamp_manifest_to_chain
-
+        # The shared path-based helper opens the sqlite connection,
+        # wraps it in AuditChain, stamps, and closes the connection
+        # in a try/finally — same behaviour the CLI did inline before,
+        # now matched bit-for-bit by the Streamlit sidebar path.
         try:
-            conn = sqlite3.connect(audit_db_path)
+            audit_row = stamp_manifest_to_db_path(manifest, audit_db_path)
         except sqlite3.OperationalError as exc:
             print(
                 f"error: cannot open audit db '{audit_db_path}': {exc}",
                 file=sys.stderr,
             )
             return 2
-
-        try:
-            chain = AuditChain(conn)
-            audit_row = stamp_manifest_to_chain(chain, manifest)
-        finally:
-            conn.close()
 
         # One concise stderr line so the operator can locate the row
         # later via `cbsrm verify-audit --db PATH` or by querying the
