@@ -28,6 +28,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 **`cbsrm reports` — CLI catalog command**
 - New subcommand `cbsrm reports` prints the deterministic registry catalog as JSON (`indent=2`, `ensure_ascii=False`), using the existing `_write_stdout_utf8_safe` helper for Windows-cp1252-safe output. Pure pass-through over `cbsrm.reporting.get_report_catalog()`. Mirrors the `GET /reports` API endpoint for CLI/API parity. Metadata-only — the command never executes a report, never touches the network, never writes to disk. No existing CLI command modified.
 
+**`dashboard/report_catalog_viewer.py` — Streamlit landing page for the report registry**
+- New standalone offline Streamlit page that lists every report in `cbsrm.reporting.get_report_catalog()` — id, title, description, supported formats, supported windows, and the per-report CLI / HTTP API / Streamlit surfaces — and points users to the existing `dashboard/crisis_dossier_viewer.py` for per-window detail. Mirrors the `cbsrm reports` CLI command and the `GET /reports` HTTP endpoint over the same registry, completing CLI / API / Streamlit parity for the v0.9 catalog surface.
+- All data logic lives in `build_catalog_view(catalog=None) -> dict` — pure, Streamlit-free, deterministic, no network, no report execution. Accepts an optional pre-fetched catalog dict as a test-injection seam (so callers can drive the viewer with a synthetic catalog without monkeypatching the registry).
+- Streamlit is imported lazily inside `render()`, keeping the module import-safe (and unit-testable) in environments without Streamlit installed.
+- 9 tests in `tests/test_streamlit_report_catalog_viewer.py` (module loaded via `importlib.util.spec_from_file_location`, same pattern as the existing crisis-dossier viewer test): import without Streamlit; default call uses the live registry; default output matches `get_report_catalog()`; output is JSON-serializable; caller-supplied catalog overrides the registry without falling back to it; monkeypatched `build_crisis_dossier` proves the viewer never executes a report; v0.8 crisis-dossier metadata pinned (formats / windows / surfaces); byte-identical determinism across calls; mutation-isolation across calls.
+
 ---
 
 ## [0.8.0] — 2026-05-24
