@@ -22,6 +22,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Companion helpers: `list_supported_events()`, `get_event_spec(event)`.
 - Intended as *decision intelligence*, not a trading signal — coarse `risk_bias` mapping, in-line band defaults to |z| < 0.25 = `neutral`.
 - 23 tests in `tests/test_macro_events.py`.
+- **Docs** — `docs/v0.8_research_flow.md` walks the end-to-end research flow (macro shock → crisis replay → cross-asset spillover → systemic DebtRank), with runnable Stage 1 + Stage 3 snippets, forward-looking Stage 2 + Stage 4 snippets (Lanes A and B), and an API-consistency note section pre-flagged for a later unification pass.
 
 **`cbsrm.diagnostics.macro_replay` — windowed price reaction around macro events**
 - `replay_macro_events(events_df, prices_df, pre_window_days=5, post_window_days=5)` composes `macro_events.score_event` with as-of-or-prior price lookups on a wide-form price panel, returning a long-form DataFrame keyed by `(event, price_series)` with `surprise`, `surprise_z`, `direction`, `severity`, `risk_bias`, and pre/post log returns. Pure function, no I/O.

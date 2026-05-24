@@ -148,3 +148,13 @@ This work compounds when applied. Substantive conversations with quant research 
 ## License
 
 Apache 2.0 — see [`LICENSE`](LICENSE).
+
+## v0.8 research flow (work in progress)
+
+The v0.8 series chains four modules into a single narrative —
+**macro shock (`score_event`) → crisis replay (`replay_macro_events`) →
+cross-asset connectedness (`DYSpilloverIndicator`) → systemic DebtRank
+(`debt_rank`)**. End-to-end walkthrough, runnable code blocks, and the
+current API-consistency gap list are in
+[`docs/v0.8_research_flow.md`](docs/v0.8_research_flow.md). Stages 2 and 4
+land on `main` from parallel branches before the v0.8 tag.
