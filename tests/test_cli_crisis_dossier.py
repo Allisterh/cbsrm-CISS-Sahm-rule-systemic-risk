@@ -309,3 +309,116 @@ def test_argparse_accepts_html_in_format_choices(capsys):
     err = capsys.readouterr().err
     assert err
     assert "Traceback" not in err
+
+
+# ─── Manifest flag (v0.9 addition) ──────────────────────────────────
+
+
+def _read_manifest(path):
+    import json as _json
+    return _json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_manifest_flag_writes_sibling_file(tmp_path, capsys):
+    """`--manifest PATH` writes a deterministic manifest JSON file."""
+    out_path = tmp_path / "m.json"
+    rc, out, err = _run(
+        ["crisis-dossier", "2008Q4",
+         "--format", "json", "--manifest", str(out_path)],
+        capsys,
+    )
+    assert rc == 0, err
+    assert out_path.is_file()
+    manifest = _read_manifest(out_path)
+    # Required top-level shape from cbsrm.reporting.manifest.
+    assert set(manifest.keys()) == {
+        "manifest_version", "report_id", "window_id", "format",
+        "source", "generated_at_utc", "versions", "hashes",
+        "disclaimer_present",
+    }
+
+
+def test_manifest_records_source_cli(tmp_path, capsys):
+    out_path = tmp_path / "m.json"
+    rc, _out, _err = _run(
+        ["crisis-dossier", "2008Q4",
+         "--format", "markdown", "--manifest", str(out_path)],
+        capsys,
+    )
+    assert rc == 0
+    manifest = _read_manifest(out_path)
+    assert manifest["source"] == "cli"
+
+
+@pytest.mark.parametrize("fmt", ["json", "markdown", "html"])
+def test_manifest_format_matches_cli_format(fmt, tmp_path, capsys):
+    if fmt == "html":
+        pytest.importorskip("markdown")
+    out_path = tmp_path / "m.json"
+    rc, _out, _err = _run(
+        ["crisis-dossier", "2020Q1",
+         "--format", fmt, "--manifest", str(out_path)],
+        capsys,
+    )
+    assert rc == 0
+    manifest = _read_manifest(out_path)
+    assert manifest["format"] == fmt
+
+
+def test_manifest_output_sha256_matches_stdout(tmp_path, capsys):
+    """The hash in the manifest must equal sha256 of the bytes the
+    user saw on stdout."""
+    import hashlib
+
+    out_path = tmp_path / "m.json"
+    rc, stdout, _err = _run(
+        ["crisis-dossier", "2008Q4",
+         "--format", "markdown", "--manifest", str(out_path)],
+        capsys,
+    )
+    assert rc == 0
+    manifest = _read_manifest(out_path)
+    expected = hashlib.sha256(stdout.encode("utf-8")).hexdigest()
+    assert manifest["hashes"]["output_sha256"] == expected
+
+
+def test_manifest_window_id_pinned(tmp_path, capsys):
+    out_path = tmp_path / "m.json"
+    rc, _out, _err = _run(
+        ["crisis-dossier", "2023Q1",
+         "--format", "json", "--manifest", str(out_path)],
+        capsys,
+    )
+    assert rc == 0
+    manifest = _read_manifest(out_path)
+    assert manifest["window_id"] == "2023Q1"
+    assert manifest["report_id"] == "crisis-dossier"
+
+
+def test_no_file_written_when_manifest_flag_omitted(tmp_path, capsys):
+    """Without `--manifest`, no file in tmp_path. Stdout report is
+    still emitted as before."""
+    rc, out, _err = _run(
+        ["crisis-dossier", "2008Q4", "--format", "json"], capsys,
+    )
+    assert rc == 0
+    assert out  # report still on stdout
+    assert list(tmp_path.iterdir()) == []  # no side-effect file
+
+
+def test_stdout_byte_identical_with_and_without_manifest_flag(
+    tmp_path, capsys,
+):
+    """The manifest flag must be purely additive: stdout report
+    bytes are byte-identical with or without `--manifest`."""
+    rc1, out_without, _ = _run(
+        ["crisis-dossier", "2008Q4", "--format", "json"], capsys,
+    )
+    out_path = tmp_path / "m.json"
+    rc2, out_with, _ = _run(
+        ["crisis-dossier", "2008Q4",
+         "--format", "json", "--manifest", str(out_path)],
+        capsys,
+    )
+    assert rc1 == 0 and rc2 == 0
+    assert out_without == out_with

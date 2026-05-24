@@ -708,28 +708,49 @@ def cmd_crisis_dossier(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    if args.format == "markdown":
-        title_prefix = getattr(args, "title_prefix", None)
-        md = render_dossier_markdown(dossier, title_prefix=title_prefix)
-        _write_stdout_utf8_safe(md)
-        return 0
+    # Compute the canonical output text for each format BEFORE writing
+    # stdout, so the same bytes can be hashed into the optional manifest
+    # without re-rendering. `payload` stays None for non-JSON formats;
+    # `build_report_manifest` only records `payload_sha256` when the
+    # payload is supplied.
+    title_prefix = getattr(args, "title_prefix", None)
+    payload: dict | None = None
 
-    if args.format == "html":
+    if args.format == "markdown":
+        output_text = render_dossier_markdown(dossier, title_prefix=title_prefix)
+    elif args.format == "html":
         # Lazy import — the HTML renderer depends on the optional
-        # `markdown` extra. Surfacing the import here keeps `cbsrm` importable
-        # and the json/markdown formats usable without it.
+        # `markdown` extra. Surfacing the import here keeps `cbsrm`
+        # importable and the json/markdown formats usable without it.
         from cbsrm.reporting import render_dossier_html
 
-        title_prefix = getattr(args, "title_prefix", None)
-        html = render_dossier_html(dossier, title_prefix=title_prefix)
-        _write_stdout_utf8_safe(html)
-        return 0
+        output_text = render_dossier_html(dossier, title_prefix=title_prefix)
+    else:  # "json" (default)
+        payload = build_report_payload(dossier)
+        # ensure_ascii=False keeps em-dashes / arrows readable; UTF-8-safe
+        # stdout handles the encoding even on Windows cp1252 consoles.
+        output_text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
 
-    # default / "json"
-    payload = build_report_payload(dossier)
-    # ensure_ascii=False keeps em-dashes / arrows readable; UTF-8-safe stdout
-    # handles the encoding even on Windows cp1252 consoles.
-    _write_stdout_utf8_safe(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    _write_stdout_utf8_safe(output_text)
+
+    manifest_path = getattr(args, "manifest", None)
+    if manifest_path is not None:
+        from cbsrm.reporting import build_report_manifest
+
+        manifest = build_report_manifest(
+            report_id="crisis-dossier",
+            output_text=output_text,
+            output_format=args.format,
+            window_id=args.window,
+            source="cli",
+            dossier=dossier,
+            payload=payload,
+        )
+        Path(manifest_path).write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
     return 0
 
 
@@ -977,6 +998,11 @@ def main(argv: list[str] | None = None) -> int:
         "--title-prefix", default=None,
         help="Optional prefix prepended to the report title "
              "(applies to markdown and html formats; ignored for json)",
+    )
+    p_cd.add_argument(
+        "--manifest", default=None, metavar="PATH",
+        help="Optional path to write the deterministic export-time "
+             "manifest JSON. Stdout report output is unchanged.",
     )
     p_cd.set_defaults(func=cmd_crisis_dossier)
 

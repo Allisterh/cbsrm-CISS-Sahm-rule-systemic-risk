@@ -152,3 +152,66 @@ def test_build_viewer_artifacts_html_is_deterministic(viewer):
     h1 = viewer.build_viewer_artifacts("2020Q1")["html"]
     h2 = viewer.build_viewer_artifacts("2020Q1")["html"]
     assert h1 == h2
+
+
+# ─── Manifest artifact (v0.9 addition) ──────────────────────────────
+
+
+def test_build_viewer_artifacts_includes_manifest_and_manifest_json(
+    viewer,
+):
+    artifacts = viewer.build_viewer_artifacts("2008Q4")
+    assert "manifest" in artifacts
+    assert "manifest_json" in artifacts
+    assert isinstance(artifacts["manifest"], dict)
+    assert isinstance(artifacts["manifest_json"], str)
+    # Required top-level shape from cbsrm.reporting.manifest.
+    assert set(artifacts["manifest"].keys()) == {
+        "manifest_version", "report_id", "window_id", "format",
+        "source", "generated_at_utc", "versions", "hashes",
+        "disclaimer_present",
+    }
+
+
+def test_manifest_records_source_streamlit(viewer):
+    artifacts = viewer.build_viewer_artifacts("2008Q4")
+    assert artifacts["manifest"]["source"] == "streamlit"
+
+
+def test_manifest_format_is_markdown(viewer):
+    """The Streamlit page displays the Markdown rendering inline, so
+    the manifest describes the Markdown output."""
+    artifacts = viewer.build_viewer_artifacts("2008Q4")
+    assert artifacts["manifest"]["format"] == "markdown"
+
+
+def test_manifest_output_sha256_matches_artifacts_markdown(viewer):
+    import hashlib
+
+    artifacts = viewer.build_viewer_artifacts("2008Q4")
+    expected = hashlib.sha256(
+        artifacts["markdown"].encode("utf-8"),
+    ).hexdigest()
+    assert (
+        artifacts["manifest"]["hashes"]["output_sha256"] == expected
+    )
+
+
+def test_manifest_json_round_trips(viewer):
+    """``manifest_json`` is a pretty-printed JSON serialisation of
+    ``manifest``; ``json.loads`` must return the same dict."""
+    artifacts = viewer.build_viewer_artifacts("2008Q4")
+    assert json.loads(artifacts["manifest_json"]) == artifacts["manifest"]
+
+
+def test_manifest_window_id_pinned(viewer):
+    artifacts = viewer.build_viewer_artifacts("2023Q1")
+    assert artifacts["manifest"]["window_id"] == "2023Q1"
+    assert artifacts["manifest"]["report_id"] == "crisis-dossier"
+
+
+def test_manifest_is_deterministic_across_calls(viewer):
+    a1 = viewer.build_viewer_artifacts("2020Q1")
+    a2 = viewer.build_viewer_artifacts("2020Q1")
+    assert a1["manifest"] == a2["manifest"]
+    assert a1["manifest_json"] == a2["manifest_json"]

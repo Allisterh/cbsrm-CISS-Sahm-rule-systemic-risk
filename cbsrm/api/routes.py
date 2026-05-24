@@ -186,16 +186,51 @@ def build_app(audit_conn: sqlite3.Connection | None = None):
         return {"windows": list(list_dossier_windows())}
 
     @app.get("/reports/crisis-dossiers/{window_id}", tags=["reports"])
-    def get_crisis_dossier(window_id: str) -> dict[str, Any]:
+    def get_crisis_dossier(
+        window_id: str, manifest: bool = False,
+    ) -> dict[str, Any]:
         """Return the JSON report payload for one crisis window.
 
         Shape: ``{"report": {...}, "dossier": {...}}`` — identical to
         ``cbsrm crisis-dossier WINDOW --format json``.
+
+        When ``?manifest=true`` is supplied, a deterministic export-time
+        manifest is appended under the ``"manifest"`` key:
+        ``{"report": {...}, "dossier": {...}, "manifest": {...}}``.
+
+        The manifest's ``output_sha256`` hashes the *core* canonical
+        payload JSON text (matching the CLI ``--format json`` output
+        byte-for-byte), not the self-referential response envelope
+        that includes the manifest. This keeps CLI ↔ API hash parity
+        for the same window.
+
+        Default (``manifest=false``) preserves the existing envelope
+        byte-for-byte.
         """
+        import json as _json
+
         from cbsrm.reporting import build_report_payload
 
         dossier = _resolve_dossier_or_404(window_id)
-        return build_report_payload(dossier)
+        payload = build_report_payload(dossier)
+        if not manifest:
+            return payload
+
+        from cbsrm.reporting import build_report_manifest
+
+        canonical = (
+            _json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+        )
+        manifest_dict = build_report_manifest(
+            report_id="crisis-dossier",
+            output_text=canonical,
+            output_format="json",
+            window_id=window_id,
+            source="api",
+            dossier=dossier,
+            payload=payload,
+        )
+        return {**payload, "manifest": manifest_dict}
 
     @app.get(
         "/reports/crisis-dossiers/{window_id}/markdown",

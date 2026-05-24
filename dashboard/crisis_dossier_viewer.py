@@ -28,6 +28,7 @@ from typing import Any
 
 from cbsrm.diagnostics import build_crisis_dossier, list_dossier_windows
 from cbsrm.reporting import (
+    build_report_manifest,
     build_report_payload,
     render_dossier_html,
     render_dossier_markdown,
@@ -49,16 +50,23 @@ def build_viewer_artifacts(window_id: str) -> dict[str, Any]:
     Returns
     -------
     dict with keys:
-        ``window_id``    — the input, echoed for caller convenience
-        ``dossier``      — raw dossier dict from ``build_crisis_dossier``
-        ``markdown``     — deterministic Markdown report (str)
-        ``html``         — deterministic HTML report (str), suitable for
-                           browser print-to-PDF (via
-                           :func:`cbsrm.reporting.render_dossier_html`)
-        ``payload``      — ``{"report": {...}, "dossier": {...}}`` envelope
-        ``payload_json`` — UTF-8-safe pretty-printed JSON serialisation of
-                           ``payload`` (``ensure_ascii=False`` so the
-                           composition arrow ``→`` round-trips intact)
+        ``window_id``     — the input, echoed for caller convenience
+        ``dossier``       — raw dossier dict from ``build_crisis_dossier``
+        ``markdown``      — deterministic Markdown report (str)
+        ``html``          — deterministic HTML report (str), suitable for
+                            browser print-to-PDF (via
+                            :func:`cbsrm.reporting.render_dossier_html`)
+        ``payload``       — ``{"report": {...}, "dossier": {...}}`` envelope
+        ``payload_json``  — UTF-8-safe pretty-printed JSON serialisation of
+                            ``payload`` (``ensure_ascii=False`` so the
+                            composition arrow ``→`` round-trips intact)
+        ``manifest``      — deterministic export-time manifest dict
+                            describing the displayed Markdown rendering;
+                            stamped with ``source="streamlit"``,
+                            ``format="markdown"`` and the sha256 of the
+                            Markdown text. No wall-clock.
+        ``manifest_json`` — pretty-printed JSON serialisation of
+                            ``manifest`` (UTF-8-safe)
 
     Raises
     ------
@@ -70,13 +78,27 @@ def build_viewer_artifacts(window_id: str) -> dict[str, Any]:
     """
     dossier = build_crisis_dossier(window_id)
     payload = build_report_payload(dossier)
+    markdown_text = render_dossier_markdown(dossier)
+    manifest = build_report_manifest(
+        report_id="crisis-dossier",
+        output_text=markdown_text,
+        output_format="markdown",
+        window_id=window_id,
+        source="streamlit",
+        dossier=dossier,
+        payload=payload,
+    )
     return {
         "window_id": window_id,
         "dossier": dossier,
-        "markdown": render_dossier_markdown(dossier),
+        "markdown": markdown_text,
         "html": render_dossier_html(dossier),
         "payload": payload,
         "payload_json": json.dumps(payload, indent=2, ensure_ascii=False),
+        "manifest": manifest,
+        "manifest_json": json.dumps(
+            manifest, indent=2, ensure_ascii=False,
+        ),
     }
 
 
@@ -105,7 +127,7 @@ def render() -> None:
 
     artifacts = build_viewer_artifacts(window_id)
 
-    col_md, col_json, col_html = st.columns(3)
+    col_md, col_json, col_html, col_manifest = st.columns(4)
     with col_md:
         st.download_button(
             label="Download Markdown (.md)",
@@ -126,6 +148,15 @@ def render() -> None:
             data=artifacts["html"].encode("utf-8"),
             file_name=f"cbsrm_crisis_dossier_{window_id}.html",
             mime="text/html",
+        )
+    with col_manifest:
+        st.download_button(
+            label="Download Manifest (.manifest.json)",
+            data=artifacts["manifest_json"].encode("utf-8"),
+            file_name=(
+                f"cbsrm_crisis_dossier_{window_id}.manifest.json"
+            ),
+            mime="application/json",
         )
 
     st.markdown("---")

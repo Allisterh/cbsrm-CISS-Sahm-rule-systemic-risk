@@ -244,3 +244,78 @@ def test_html_endpoint_is_byte_identical_across_calls(client):
     r2 = client.get("/reports/crisis-dossiers/2023Q1/html")
     assert r1.status_code == 200 and r2.status_code == 200
     assert r1.content == r2.content
+
+
+# ─── ?manifest=true on the JSON endpoint (v0.9 addition) ────────────
+
+
+def test_default_json_endpoint_has_no_manifest_key(client):
+    """Default path (no ``manifest`` query) must preserve the existing
+    envelope byte-for-byte. This is the load-bearing contract that
+    keeps the v0.8 API consumers unaffected."""
+    r = client.get("/reports/crisis-dossiers/2008Q4")
+    assert r.status_code == 200
+    body = r.json()
+    assert "manifest" not in body
+    assert set(body.keys()) == {"report", "dossier"}
+
+
+def test_manifest_query_param_adds_manifest_key(client):
+    r = client.get("/reports/crisis-dossiers/2008Q4?manifest=true")
+    assert r.status_code == 200
+    body = r.json()
+    # Existing keys preserved + new "manifest" key appended.
+    assert "report" in body
+    assert "dossier" in body
+    assert "manifest" in body
+    assert isinstance(body["manifest"], dict)
+
+
+def test_manifest_records_source_api(client):
+    r = client.get("/reports/crisis-dossiers/2008Q4?manifest=true")
+    assert r.status_code == 200
+    assert r.json()["manifest"]["source"] == "api"
+
+
+def test_manifest_format_is_json_on_json_endpoint(client):
+    r = client.get("/reports/crisis-dossiers/2008Q4?manifest=true")
+    assert r.status_code == 200
+    assert r.json()["manifest"]["format"] == "json"
+
+
+def test_manifest_output_sha256_pins_canonical_payload(client):
+    """The manifest's `output_sha256` describes the canonical payload
+    JSON text (matching the CLI `--format json` output), not the
+    response envelope-with-manifest. This keeps CLI ↔ API hash parity
+    for the same window."""
+    import hashlib
+    import json as _json
+
+    r = client.get("/reports/crisis-dossiers/2008Q4?manifest=true")
+    assert r.status_code == 200
+    body = r.json()
+    # Strip the manifest, recompute canonical text, compare hashes.
+    payload = {"report": body["report"], "dossier": body["dossier"]}
+    canonical = (
+        _json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    )
+    expected = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    assert body["manifest"]["hashes"]["output_sha256"] == expected
+
+
+def test_manifest_query_param_404_for_unknown_window(client):
+    r = client.get(
+        "/reports/crisis-dossiers/BOGUS?manifest=true"
+    )
+    assert r.status_code == 404
+    detail = r.json()["detail"]
+    assert detail["window_id"] == "BOGUS"
+    assert "Traceback" not in r.text
+
+
+def test_manifest_query_param_byte_identical_repeated(client):
+    """Deterministic — same window, same query, byte-identical body."""
+    r1 = client.get("/reports/crisis-dossiers/2020Q1?manifest=true")
+    r2 = client.get("/reports/crisis-dossiers/2020Q1?manifest=true")
+    assert r1.status_code == 200 and r2.status_code == 200
+    assert r1.content == r2.content
