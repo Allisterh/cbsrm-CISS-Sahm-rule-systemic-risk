@@ -8,6 +8,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added — v0.8 work in progress
 
+**`cbsrm.macro.phase_classifier` — Acemoglu-style deterministic phase classifier**
+- Pure function `classify_phase(features, *, config=None)` labels a macro/market feature snapshot into one of 8 phases: `expansion`, `overheating`, `slowdown`, `contraction`, `disinflationary_recovery`, `stagflationary_stress`, `financial_stress`, `indeterminate`.
+- Feature inputs (all optional, all z-scored, caller-supplied): `growth_z`, `inflation_z`, `unemployment_z` (or its synonym `labor_slack_z`), `rates_z`, `credit_spread_z`, `volatility_z`, `liquidity_z`, `systemic_risk_z`. Minimum 3 features required for a non-indeterminate label.
+- Outputs `phase`, `score` (0..1 confidence), `dominant_drivers` (features with |z| ≥ 1, magnitude-sorted), `risk_posture` (`risk_on` / `balanced` / `defensive` / `risk_off` / `stress_mitigation`), `input_features_used`, `rule_version`, and a `spec` block with the human-readable rule book + config.
+- Accepts dict, `pandas.Series`, or `pandas.DataFrame` (batch mode returns a DataFrame with one row per input row; original index preserved).
+- Validation: non-finite values, unsupported feature keys, non-numeric values, empty DataFrames, and unknown input types all raise `ValueError`.
+- `PhaseClassifierConfig` (frozen dataclass) exposes every threshold knob for caller-overridable rule tuning; `DEFAULT_CONFIG` ships as a singleton.
+- Pure / deterministic / offline — research classification layer, **not** a trading or execution signal. Pairs with the v0.7 `macro_composite.classify_regime` 4-state regime tone.
+- 32 tests in `tests/test_phase_classifier.py` covering all 8 phase rules, override precedence (financial_stress > overheating, stagflation > overheating), validation paths, DataFrame batch mode, `Series` input, synonym folding, dominant-driver sort order, custom-config behaviour, score bounds, and determinism.
+
 **`cbsrm.networks.debt_rank` — pure-numpy DebtRank systemic-risk engine** (Battiston, Puliga, Kaushik, Tasca, Caldarelli 2012, *Scientific Reports*)
 - Function `debt_rank(L, E, h0, v=None, max_iter=100, tol=1e-9)` returns a dict with `distress_final`, `distress_initial`, `debt_rank` (scalar), `node_contributions`, `iterations`, `converged`, `leverage_matrix`, and `economic_weights`.
 - Constructs the leverage matrix `W[i,j] = min(L[i,j] / E[i], 1)` (self-loops zeroed, rows with non-positive equity zeroed) and runs the U/D/I state-machine cascade described in the paper.
@@ -33,8 +43,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Historical crisis-window dossiers — 2008Q4 / 2020Q1 / 2023Q1 walkthroughs that drive Stage 1-4 across the canonical CRISIS_WINDOWS (separate from the per-event macro-replay surface that already shipped)
 - `arch`-backed GJR-GARCH-DCC fitter for end-to-end SRISK from raw returns
 - LBS (locational banking statistics) + BIS EER (effective exchange rates)
-- Acemoglu phase classifier
-- *(Optional / downstream)* VolanX wiring of `macro_events.score_event` as a decision-intelligence feature (operator-tracked, not in-tree)
+- *(Optional / downstream)* VolanX wiring of `macro_events.score_event` and `classify_phase` as decision-intelligence features (operator-tracked, not in-tree)
 
 ---
 

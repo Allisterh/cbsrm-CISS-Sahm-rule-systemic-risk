@@ -43,6 +43,13 @@ from cbsrm.macro.macro_composite import (
 )
 from cbsrm.macro.nfp_momentum import NFPMomentumIndicator
 from cbsrm.macro.oil_macro import OilMacroIndicator
+from cbsrm.macro.phase_classifier import (
+    DEFAULT_CONFIG as PHASE_DEFAULT_CONFIG,
+    PHASE_LABELS,
+    PhaseClassifierConfig,
+    RISK_POSTURES,
+    classify_phase,
+)
 from cbsrm.macro.sahm_rule import SahmRuleIndicator
 from cbsrm.macro.yield_curve import (
     YieldCurveIndicator,
@@ -64,4 +71,9 @@ __all__ = [
     "MACRO_REGIMES",
     "classify_regime",
     "macro_events",
+    "classify_phase",
+    "PhaseClassifierConfig",
+    "PHASE_DEFAULT_CONFIG",
+    "PHASE_LABELS",
+    "RISK_POSTURES",
 ]
