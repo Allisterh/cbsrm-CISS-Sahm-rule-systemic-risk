@@ -28,6 +28,7 @@ from cbsrm.reporting import (
     build_report_payload,
     manifest_subject,
     stamp_manifest_to_chain,
+    stamp_manifest_to_db_path,
 )
 
 
@@ -210,3 +211,95 @@ def test_audit_subject_queryable_via_chain_query_subject(chain):
     assert len(rows) == 1
     assert rows[0].kind == "REPORT_EXPORTED"
     assert rows[0].subject == subject
+
+
+# ─── stamp_manifest_to_db_path (path-based wrapper) ─────────────────
+
+
+def test_stamp_to_db_path_creates_sqlite_and_appends_row(tmp_path):
+    db_path = tmp_path / "audit.db"
+    assert not db_path.exists()
+    row = stamp_manifest_to_db_path(_crisis_manifest("2008Q4"), str(db_path))
+    assert db_path.is_file()
+    assert isinstance(row["row_id"], int)
+    assert row["row_id"] == 1
+
+
+def test_stamp_to_db_path_returns_same_shape_as_chain_helper(tmp_path):
+    db_path = tmp_path / "audit.db"
+    row = stamp_manifest_to_db_path(_crisis_manifest("2008Q4"), str(db_path))
+    assert set(row.keys()) == {
+        "row_id", "hash", "prev_hash", "ts", "subject", "kind",
+    }
+    assert row["kind"] == "REPORT_EXPORTED"
+    assert row["subject"] == "report:crisis-dossier:2008Q4:json"
+
+
+def test_stamp_to_db_path_two_calls_link_via_prev_hash(tmp_path):
+    db_path = tmp_path / "audit.db"
+    row1 = stamp_manifest_to_db_path(
+        _crisis_manifest("2008Q4"), str(db_path),
+    )
+    row2 = stamp_manifest_to_db_path(
+        _crisis_manifest("2020Q1"), str(db_path),
+    )
+    assert row1["prev_hash"] is None
+    assert row2["prev_hash"] == row1["hash"]
+    assert row2["hash"] != row1["hash"]
+    assert row2["row_id"] == row1["row_id"] + 1
+
+
+def test_stamp_to_db_path_chain_verify_passes(tmp_path):
+    """After three stamps via the path-based helper, re-open the
+    chain and verify integrity end-to-end."""
+    db_path = tmp_path / "audit.db"
+    stamp_manifest_to_db_path(_crisis_manifest("2008Q4"), str(db_path))
+    stamp_manifest_to_db_path(
+        _crisis_manifest("2020Q1", output_format="markdown"),
+        str(db_path),
+    )
+    stamp_manifest_to_db_path(_crisis_manifest("2023Q1"), str(db_path))
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        chain = AuditChain(conn)
+        ok, broken = chain.verify()
+    finally:
+        conn.close()
+    assert ok is True
+    assert broken == []
+
+
+def test_stamp_to_db_path_closes_connection(tmp_path):
+    """The helper must close its sqlite connection so the file can
+    be re-opened immediately (no lingering lock)."""
+    db_path = tmp_path / "audit.db"
+    stamp_manifest_to_db_path(_crisis_manifest("2008Q4"), str(db_path))
+    # Reopen — must succeed without WAL/lock contention.
+    conn = sqlite3.connect(str(db_path))
+    try:
+        cur = conn.execute("SELECT COUNT(*) FROM cbsrm_audit_log")
+        n = cur.fetchone()[0]
+    finally:
+        conn.close()
+    assert n == 1
+
+
+def test_stamp_to_db_path_bad_path_raises_operational_error(tmp_path):
+    """A path whose parent directory does not exist must raise
+    ``sqlite3.OperationalError``. Caller (Streamlit / CLI) is
+    expected to surface it as a user-facing error."""
+    bad_path = tmp_path / "missing_parent" / "audit.db"
+    with pytest.raises(sqlite3.OperationalError):
+        stamp_manifest_to_db_path(
+            _crisis_manifest("2008Q4"), str(bad_path),
+        )
+
+
+def test_stamp_to_db_path_rejects_blank_db_path():
+    with pytest.raises(ValueError):
+        stamp_manifest_to_db_path(_crisis_manifest("2008Q4"), "")
+    with pytest.raises(ValueError):
+        stamp_manifest_to_db_path(
+            _crisis_manifest("2008Q4"), None,  # type: ignore[arg-type]
+        )

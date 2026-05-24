@@ -64,6 +64,7 @@ from cbsrm.reporting.audit_manifest import (
     AUDIT_EVENT_KIND,
     manifest_subject,
     stamp_manifest_to_chain,
+    stamp_manifest_to_db_path,
 )
 from cbsrm.reporting.html_renderer import (
     HTML_RENDERER_VERSION,
@@ -104,6 +105,7 @@ __all__ = [
     "sha256_jsonable",
     "MANIFEST_VERSION",
     "stamp_manifest_to_chain",
+    "stamp_manifest_to_db_path",
     "manifest_subject",
     "AUDIT_EVENT_KIND",
 ]

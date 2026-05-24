@@ -156,3 +156,43 @@ def stamp_manifest_to_chain(
 # use the chain's own json.loads path without re-importing json.
 def _decode_payload_json(payload_json: str) -> dict[str, Any]:
     return json.loads(payload_json)
+
+
+# ─── Path-based wrapper ────────────────────────────────────────────
+
+
+def stamp_manifest_to_db_path(
+    manifest: Mapping[str, Any], db_path: str,
+) -> dict[str, Any]:
+    """Append a manifest as one audit-chain row in the sqlite DB at
+    ``db_path``.
+
+    Thin path-based wrapper over :func:`stamp_manifest_to_chain`:
+    opens a :class:`sqlite3.Connection`, wraps it in
+    :class:`AuditChain`, stamps the manifest, then closes the
+    connection in a ``finally`` block (no lock left behind even if
+    the chain helper raises). The file at ``db_path`` is created if
+    it does not exist; :meth:`AuditChain._ensure_schema` is
+    idempotent.
+
+    Returns the same 6-key row-metadata dict as
+    :func:`stamp_manifest_to_chain`.
+
+    Raises
+    ------
+    ValueError
+        If ``db_path`` is not a non-empty str.
+    sqlite3.OperationalError
+        Propagated from :func:`sqlite3.connect` when the path is
+        unwritable (permissions, missing parent directory). Caller
+        is expected to surface it as a user-facing error.
+    """
+    if not isinstance(db_path, str) or not db_path:
+        raise ValueError("db_path must be a non-empty str")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        chain = AuditChain(conn)
+        return stamp_manifest_to_chain(chain, manifest)
+    finally:
+        conn.close()

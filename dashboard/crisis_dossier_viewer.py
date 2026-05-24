@@ -24,7 +24,9 @@ Design notes
 from __future__ import annotations
 
 import json
-from typing import Any
+import os
+import sqlite3
+from typing import Any, Mapping
 
 from cbsrm.diagnostics import build_crisis_dossier, list_dossier_windows
 from cbsrm.reporting import (
@@ -32,7 +34,36 @@ from cbsrm.reporting import (
     build_report_payload,
     render_dossier_html,
     render_dossier_markdown,
+    stamp_manifest_to_db_path,
 )
+
+
+# ─── Audit-DB path resolution (Streamlit-free, fully testable) ────
+
+
+def resolve_audit_db_path(
+    *,
+    sidebar_override: str | None,
+    env: Mapping[str, str] | None = None,
+) -> str | None:
+    """Decide which audit-chain DB path the Streamlit page should use.
+
+    Precedence:
+
+    1. ``sidebar_override`` (non-blank after ``.strip()``) — wins.
+    2. ``env["CBSRM_AUDIT_DB"]`` (non-blank after ``.strip()``) — fallback.
+    3. Otherwise ``None``.
+
+    ``env`` defaults to :data:`os.environ`. Whitespace-only strings
+    are treated as unset on either side.
+    """
+    if sidebar_override is not None:
+        candidate = sidebar_override.strip()
+        if candidate:
+            return candidate
+    env_map = env if env is not None else os.environ
+    candidate = (env_map.get("CBSRM_AUDIT_DB") or "").strip()
+    return candidate or None
 
 
 # ─── Pure helper (Streamlit-free) ────────────────────────────────────
@@ -158,6 +189,40 @@ def render() -> None:
             ),
             mime="application/json",
         )
+
+    # ─── Sidebar: opt-in audit-chain stamping ──────────────────────
+    with st.sidebar:
+        st.markdown("### Audit chain (opt-in)")
+        sidebar_override = st.text_input(
+            "Audit DB path (overrides CBSRM_AUDIT_DB)", value="",
+        )
+        db_path = resolve_audit_db_path(sidebar_override=sidebar_override)
+        if db_path:
+            st.caption(f"Configured: `{db_path}`")
+        else:
+            st.caption(
+                "Not configured. Set `CBSRM_AUDIT_DB` or enter a path above."
+            )
+        do_stamp = st.button(
+            "Stamp manifest to audit chain",
+            disabled=(db_path is None),
+        )
+
+    if do_stamp and db_path:
+        try:
+            audit_row = stamp_manifest_to_db_path(
+                artifacts["manifest"], db_path,
+            )
+            st.sidebar.success(
+                f"Stamped row #{audit_row['row_id']}\n\n"
+                f"subject: `{audit_row['subject']}`\n\n"
+                f"hash: `{audit_row['hash']}`\n\n"
+                f"ts: `{audit_row['ts']}`"
+            )
+        except sqlite3.OperationalError as exc:
+            st.sidebar.error(
+                f"Cannot open audit DB '{db_path}': {exc}"
+            )
 
     st.markdown("---")
     st.markdown(artifacts["markdown"])

@@ -215,3 +215,88 @@ def test_manifest_is_deterministic_across_calls(viewer):
     a2 = viewer.build_viewer_artifacts("2020Q1")
     assert a1["manifest"] == a2["manifest"]
     assert a1["manifest_json"] == a2["manifest_json"]
+
+
+# ─── resolve_audit_db_path (Streamlit-free, v0.9 addition) ──────────
+
+
+def test_resolve_audit_db_path_uses_sidebar_override(viewer):
+    """A non-blank sidebar override wins over the env var."""
+    out = viewer.resolve_audit_db_path(
+        sidebar_override="/sidebar/path.db",
+        env={"CBSRM_AUDIT_DB": "/env/path.db"},
+    )
+    assert out == "/sidebar/path.db"
+
+
+def test_resolve_audit_db_path_falls_back_to_env_var(viewer):
+    out = viewer.resolve_audit_db_path(
+        sidebar_override="",
+        env={"CBSRM_AUDIT_DB": "/env/path.db"},
+    )
+    assert out == "/env/path.db"
+
+
+def test_resolve_audit_db_path_returns_none_when_neither_set(viewer):
+    out = viewer.resolve_audit_db_path(
+        sidebar_override="",
+        env={},
+    )
+    assert out is None
+
+
+def test_resolve_audit_db_path_blank_sidebar_lets_env_win(viewer):
+    """A whitespace-only sidebar input must be treated as unset, so
+    the env var fallback wins."""
+    out = viewer.resolve_audit_db_path(
+        sidebar_override="   ",
+        env={"CBSRM_AUDIT_DB": "/env/path.db"},
+    )
+    assert out == "/env/path.db"
+
+
+def test_resolve_audit_db_path_strips_env_value(viewer):
+    """Trailing whitespace in CBSRM_AUDIT_DB must not break the
+    sqlite-open path; ``.strip()`` is applied before use."""
+    out = viewer.resolve_audit_db_path(
+        sidebar_override=None,
+        env={"CBSRM_AUDIT_DB": "  /env/path.db  "},
+    )
+    assert out == "/env/path.db"
+
+
+def test_resolve_audit_db_path_blank_env_returns_none(viewer):
+    out = viewer.resolve_audit_db_path(
+        sidebar_override=None,
+        env={"CBSRM_AUDIT_DB": "   "},
+    )
+    assert out is None
+
+
+def test_resolve_audit_db_path_none_sidebar_uses_env_default(viewer):
+    """When sidebar_override is None (e.g. test injection), the env
+    fallback is still consulted."""
+    out = viewer.resolve_audit_db_path(
+        sidebar_override=None,
+        env={"CBSRM_AUDIT_DB": "/env/path.db"},
+    )
+    assert out == "/env/path.db"
+
+
+# ─── Integration: viewer manifest -> audit-DB path ──────────────────
+
+
+def test_viewer_manifest_stamps_through_db_path_helper(viewer, tmp_path):
+    """End-to-end shape: build viewer artifacts, then stamp the
+    manifest into a sqlite DB via the path-based helper. Asserts the
+    subject and DB row, without touching Streamlit at all."""
+    from cbsrm.reporting import stamp_manifest_to_db_path
+
+    artifacts = viewer.build_viewer_artifacts("2008Q4")
+    db_path = tmp_path / "viewer-audit.db"
+    audit_row = stamp_manifest_to_db_path(
+        artifacts["manifest"], str(db_path),
+    )
+    assert audit_row["subject"] == "report:crisis-dossier:2008Q4:markdown"
+    assert audit_row["kind"] == "REPORT_EXPORTED"
+    assert db_path.is_file()
