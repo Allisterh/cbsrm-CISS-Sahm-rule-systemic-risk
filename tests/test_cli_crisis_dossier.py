@@ -228,3 +228,84 @@ def test_no_external_network_io(monkeypatch, capsys):
             ["crisis-dossier", window, "--format", "markdown"], capsys,
         )
         assert rc == 0, err
+
+
+# ─── HTML format (v0.9 addition) ────────────────────────────────────
+
+
+def test_html_format_2008q4_returns_doctype_html(capsys):
+    """`--format html` must produce a full HTML document starting with
+    the DOCTYPE declaration."""
+    pytest.importorskip("markdown")
+    rc, out, err = _run(
+        ["crisis-dossier", "2008Q4", "--format", "html"], capsys,
+    )
+    assert rc == 0, err
+    assert out.startswith("<!DOCTYPE html>")
+    assert "<html" in out
+    assert "</html>" in out
+
+
+@pytest.mark.parametrize("window", list_dossier_windows())
+def test_html_format_serves_all_supported_windows(window, capsys):
+    pytest.importorskip("markdown")
+    rc, out, err = _run(
+        ["crisis-dossier", window, "--format", "html"], capsys,
+    )
+    assert rc == 0, err
+    assert "<!DOCTYPE html>" in out
+    assert window in out
+
+
+def test_html_format_contains_disclaimer(capsys):
+    pytest.importorskip("markdown")
+    rc, out, _err = _run(
+        ["crisis-dossier", "2008Q4", "--format", "html"], capsys,
+    )
+    assert rc == 0
+    assert "Disclaimer" in out
+
+
+def test_html_format_title_prefix_applies(capsys):
+    pytest.importorskip("markdown")
+    rc, out, _err = _run(
+        ["crisis-dossier", "2008Q4",
+         "--format", "html",
+         "--title-prefix", "WAVERVANIR"],
+        capsys,
+    )
+    assert rc == 0
+    assert "WAVERVANIR" in out
+    # And it must appear inside the <title> element so the saved-PDF
+    # default filename in browsers is meaningful.
+    assert "WAVERVANIR" in out.split("</title>")[0]
+
+
+def test_html_format_is_byte_identical_across_runs(capsys):
+    pytest.importorskip("markdown")
+    rc1, out1, _ = _run(
+        ["crisis-dossier", "2020Q1", "--format", "html"], capsys,
+    )
+    rc2, out2, _ = _run(
+        ["crisis-dossier", "2020Q1", "--format", "html"], capsys,
+    )
+    assert rc1 == 0 and rc2 == 0
+    assert out1 == out2
+
+
+def test_argparse_accepts_html_in_format_choices(capsys):
+    """argparse must reject other formats; html must be accepted as a
+    first-class choice alongside json and markdown."""
+    # html is accepted (smoke check via successful parse path)
+    rc, _out, _err = _run(
+        ["crisis-dossier", "2008Q4", "--format", "html"], capsys,
+    )
+    assert rc == 0
+    # Sanity: a bogus format value still fails cleanly (no traceback,
+    # non-zero exit). argparse exits via SystemExit on this path.
+    with pytest.raises(SystemExit) as excinfo:
+        main(["crisis-dossier", "2008Q4", "--format", "yaml"])
+    assert excinfo.value.code != 0
+    err = capsys.readouterr().err
+    assert err
+    assert "Traceback" not in err

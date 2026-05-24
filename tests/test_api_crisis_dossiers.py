@@ -178,3 +178,69 @@ def test_repeated_markdown_calls_are_byte_identical(client):
     r2 = client.get("/reports/crisis-dossiers/2020Q1/markdown")
     assert r1.status_code == 200 and r2.status_code == 200
     assert r1.content == r2.content
+
+
+# ─── /reports/crisis-dossiers/{window_id}/html (v0.9 addition) ──────
+
+
+def test_html_endpoint_route_is_registered():
+    """The new /html route must be wired alongside the existing
+    crisis-dossier routes."""
+    app = build_app()
+    paths = {r.path for r in app.routes}  # type: ignore[attr-defined]
+    assert "/reports/crisis-dossiers/{window_id}/html" in paths
+
+
+def test_html_endpoint_2008q4_returns_200(client):
+    pytest.importorskip("markdown")
+    r = client.get("/reports/crisis-dossiers/2008Q4/html")
+    assert r.status_code == 200
+
+
+def test_html_endpoint_content_type_is_text_html_utf8(client):
+    pytest.importorskip("markdown")
+    r = client.get("/reports/crisis-dossiers/2008Q4/html")
+    assert r.status_code == 200
+    ct = r.headers["content-type"]
+    assert "text/html" in ct
+    assert "charset=utf-8" in ct
+
+
+def test_html_endpoint_body_contains_doctype_window_and_disclaimer(client):
+    pytest.importorskip("markdown")
+    r = client.get("/reports/crisis-dossiers/2008Q4/html")
+    assert r.status_code == 200
+    body = r.text
+    assert "<!DOCTYPE html>" in body
+    assert "<html" in body
+    assert "2008Q4" in body
+    assert "Disclaimer" in body
+
+
+@pytest.mark.parametrize("window", list_dossier_windows())
+def test_html_endpoint_serves_all_supported_windows(window, client):
+    pytest.importorskip("markdown")
+    r = client.get(f"/reports/crisis-dossiers/{window}/html")
+    assert r.status_code == 200
+    assert "<!DOCTYPE html>" in r.text
+    assert window in r.text
+
+
+def test_html_endpoint_404_for_unknown_window(client):
+    """Unknown window IDs must surface the same 404 contract as the
+    JSON and Markdown endpoints: status 404, detail with supported
+    list, no traceback in body."""
+    r = client.get("/reports/crisis-dossiers/BOGUS/html")
+    assert r.status_code == 404
+    detail = r.json()["detail"]
+    assert detail["window_id"] == "BOGUS"
+    assert detail["supported_windows"] == list(list_dossier_windows())
+    assert "Traceback" not in r.text
+
+
+def test_html_endpoint_is_byte_identical_across_calls(client):
+    pytest.importorskip("markdown")
+    r1 = client.get("/reports/crisis-dossiers/2023Q1/html")
+    r2 = client.get("/reports/crisis-dossiers/2023Q1/html")
+    assert r1.status_code == 200 and r2.status_code == 200
+    assert r1.content == r2.content

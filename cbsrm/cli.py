@@ -682,7 +682,7 @@ def cmd_verify_audit(args: argparse.Namespace) -> int:
 
 
 def cmd_crisis_dossier(args: argparse.Namespace) -> int:
-    """Export a deterministic crisis-window dossier as JSON or Markdown.
+    """Export a deterministic crisis-window dossier as JSON, Markdown, or HTML.
 
     Pure, offline, side-effect-free. Composes
     `cbsrm.diagnostics.build_crisis_dossier` with the
@@ -712,6 +712,17 @@ def cmd_crisis_dossier(args: argparse.Namespace) -> int:
         title_prefix = getattr(args, "title_prefix", None)
         md = render_dossier_markdown(dossier, title_prefix=title_prefix)
         _write_stdout_utf8_safe(md)
+        return 0
+
+    if args.format == "html":
+        # Lazy import — the HTML renderer depends on the optional
+        # `markdown` extra. Surfacing the import here keeps `cbsrm` importable
+        # and the json/markdown formats usable without it.
+        from cbsrm.reporting import render_dossier_html
+
+        title_prefix = getattr(args, "title_prefix", None)
+        html = render_dossier_html(dossier, title_prefix=title_prefix)
+        _write_stdout_utf8_safe(html)
         return 0
 
     # default / "json"
@@ -959,13 +970,13 @@ def main(argv: list[str] | None = None) -> int:
              "Run with an unsupported value to see the full supported list.",
     )
     p_cd.add_argument(
-        "--format", default="json", choices=["json", "markdown"],
+        "--format", default="json", choices=["json", "markdown", "html"],
         help="Output format (default: json)",
     )
     p_cd.add_argument(
         "--title-prefix", default=None,
-        help="Optional prefix prepended to the Markdown report title "
-             "(markdown format only; ignored for json)",
+        help="Optional prefix prepended to the report title "
+             "(applies to markdown and html formats; ignored for json)",
     )
     p_cd.set_defaults(func=cmd_crisis_dossier)
 

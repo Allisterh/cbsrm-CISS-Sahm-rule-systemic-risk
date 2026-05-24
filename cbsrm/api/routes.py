@@ -217,6 +217,28 @@ def build_app(audit_conn: sqlite3.Connection | None = None):
             media_type="text/markdown; charset=utf-8",
         )
 
+    @app.get(
+        "/reports/crisis-dossiers/{window_id}/html",
+        tags=["reports"],
+        response_class=None,  # set per-call below
+    )
+    def get_crisis_dossier_html(window_id: str):
+        """Return the HTML report for one crisis window.
+
+        Media type: ``text/html; charset=utf-8``. Body is identical to
+        ``cbsrm crisis-dossier WINDOW --format html`` and suitable for
+        browser print-to-PDF. Requires the optional ``cbsrm[html]``
+        extra (``markdown`` package) on the server.
+        """
+        from fastapi.responses import HTMLResponse
+        from cbsrm.reporting import render_dossier_html
+
+        dossier = _resolve_dossier_or_404(window_id)
+        return HTMLResponse(
+            content=render_dossier_html(dossier),
+            media_type="text/html; charset=utf-8",
+        )
+
     return app
 
 
