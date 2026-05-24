@@ -39,6 +39,24 @@ investment advice. The SRISK panel uses *approximate* market-cap and book-debt
 figures for JPM, BAC, and C — clearly labeled as illustrative. For
 regulator-grade live numbers, consult NYU Stern V-Lab.
 
+## Crisis Dossier Viewer (v0.8, offline)
+
+A second standalone Streamlit page lives at
+[`crisis_dossier_viewer.py`](crisis_dossier_viewer.py). It renders the
+deterministic v0.8 crisis-window dossiers (`2008Q4`, `2020Q1`, `2023Q1`)
+through the canonical report renderer and offers Markdown / JSON downloads.
+No FRED key, no network calls, no API server required.
+
+```bash
+pip install -e ".[all]" streamlit
+streamlit run dashboard/crisis_dossier_viewer.py
+```
+
+Mirrors the CLI surface (`cbsrm crisis-dossier WINDOW --format ...`) and the
+FastAPI surface (`GET /reports/crisis-dossiers/...`) bit-for-bit — all three
+front-ends share the same `cbsrm.diagnostics.build_crisis_dossier` +
+`cbsrm.reporting` payload/renderer composition.
+
 ## License
 
 Apache 2.0. Same as the rest of CBSRM.

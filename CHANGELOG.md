@@ -8,6 +8,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added — v0.8 work in progress
 
+**`dashboard/crisis_dossier_viewer.py` — offline Streamlit crisis-dossier viewer**
+- Standalone Streamlit page (separate file from `dashboard/streamlit_app.py`, which is left untouched) that mirrors the v0.8 report surface on the desktop: selectbox over `list_dossier_windows()` → `build_crisis_dossier` → `render_dossier_markdown` displayed inline plus Markdown (`.md`) and JSON (`.json`) download buttons. The JSON download uses `ensure_ascii=False` so the literal `→` composition arrow survives in the file.
+- All data logic lives in `build_viewer_artifacts(window_id) -> dict` — pure, Streamlit-free, deterministic, no network. The Streamlit `render()` function is a thin presentation wrapper that imports Streamlit lazily, so the module itself is import-safe (and unit-testable) in environments without Streamlit installed.
+- Offline by design — no FRED key, no live data, no API-server dependency, no auth/billing/PDF/persistence.
+- 6 tests in `tests/test_streamlit_crisis_dossier_viewer.py` (module loaded via `importlib.util.spec_from_file_location` so the new file does not require turning `dashboard/` into a package). Covers: import without Streamlit, all 3 windows × full artifact contract (window-id echo, dossier id, Markdown H1 + window-id + disclaimer, payload envelope, JSON round-trip, literal `→` preserved), `ValueError` on unknown window, byte-identical determinism.
+- Bit-for-bit parity with `cbsrm crisis-dossier WINDOW` (CLI) and `GET /reports/crisis-dossiers/{window_id}...` (API). All three front-ends share the same dossier + reporting composition; no methodology added in this slice.
+
 **`cbsrm.api.routes` — read-only FastAPI crisis-dossier report endpoints**
 - `GET /reports/crisis-dossiers` → `{"windows": ["2008Q4", "2020Q1", "2023Q1"]}` (live from `list_dossier_windows()` so the set stays in sync as fixtures evolve).
 - `GET /reports/crisis-dossiers/{window_id}` → the `{report: {...}, dossier: {...}}` JSON envelope, identical to `cbsrm crisis-dossier WINDOW --format json`.
