@@ -15,6 +15,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added — v0.9 work in progress
 
+**`cbsrm macro-composite` — CLI exposure (first cut)**
+- New subcommand `cbsrm macro-composite WINDOW [--format json|markdown]` prints the deterministic macro-composite report for one canonical window. WINDOW `choices=` sourced live from `list_macro_composite_windows()` so the parser stays in sync with the builder. JSON output uses `indent=2, ensure_ascii=False` and the existing `_write_stdout_utf8_safe` helper for Windows-cp1252-safe stdout; Markdown output is the verbatim `render_macro_composite_markdown(report)` string. Defensive ValueError branch in the handler emits a single clean error line to stderr (`error: unknown macro-composite window '<window>'. Supported windows: 2008Q4, 2020Q1, 2023Q1.`) and returns exit code 2 with no traceback. Pure pass-through over `build_macro_composite_report` and `render_macro_composite_markdown` — deterministic, offline, fixture-backed; the command never touches the network or writes to disk. No manifest / audit / store / `--title-prefix` flags in this slice; API / Streamlit exposure for this report is also deferred to follow-up slices. No edits to the registry, the builder, or any existing CLI command.
+
 **`macro-composite` executable report — builder only**
 - New module `cbsrm/reporting/macro_composite_report.py` exposing `MACRO_COMPOSITE_REPORT_VERSION = "1.0.0"`, `MACRO_COMPOSITE_WINDOWS = ("2008Q4", "2020Q1", "2023Q1")`, `list_macro_composite_windows()`, `build_macro_composite_report(window_id)`, and `render_macro_composite_markdown(report)`. Re-exported from `cbsrm.reporting`.
 - Deterministic, offline, fixture-backed. Same `window_id` → byte-identical dict under `json.dumps(..., sort_keys=True)`. Phase z-scores are pinned in-module and drift-guarded by a test against `cbsrm.diagnostics.crisis_dossiers.get_fixture_snapshot(window_id)["phase_features"]`.

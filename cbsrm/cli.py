@@ -824,6 +824,42 @@ def cmd_crisis_dossier(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_macro_composite(args: argparse.Namespace) -> int:
+    """Export a deterministic macro-composite snapshot as JSON or Markdown.
+
+    First-cut CLI front-end for the v0.9 macro-composite report. Pure
+    pass-through over :func:`cbsrm.reporting.build_macro_composite_report`
+    and :func:`cbsrm.reporting.render_macro_composite_markdown` — the
+    builder is offline, fixture-backed, and deterministic, so this
+    command never touches the network or writes to disk. Manifest /
+    audit / store / API / Streamlit wiring for this report is
+    intentionally deferred to follow-up slices.
+    """
+    from cbsrm.reporting import (
+        build_macro_composite_report,
+        list_macro_composite_windows,
+        render_macro_composite_markdown,
+    )
+
+    try:
+        report = build_macro_composite_report(args.window)
+    except ValueError:
+        supported = ", ".join(list_macro_composite_windows())
+        print(
+            f"error: unknown macro-composite window '{args.window}'. "
+            f"Supported windows: {supported}.",
+            file=sys.stderr,
+        )
+        return 2
+
+    if args.format == "markdown":
+        output_text = render_macro_composite_markdown(report)
+    else:
+        output_text = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
+    _write_stdout_utf8_safe(output_text)
+    return 0
+
+
 def cmd_reports(_args: argparse.Namespace) -> int:
     """Print the deterministic report registry catalog as JSON.
 
@@ -1093,6 +1129,33 @@ def main(argv: list[str] | None = None) -> int:
              "Stdout report output is unchanged.",
     )
     p_cd.set_defaults(func=cmd_crisis_dossier)
+
+    # ─── v0.9 macro-composite report (CLI exposure, first cut) ──────
+    from cbsrm.reporting import (
+        list_macro_composite_windows as _list_mc_windows,
+    )
+
+    p_mc = sub.add_parser(
+        "macro-composite",
+        help="Export a deterministic macro-composite snapshot (JSON or Markdown)",
+        description=(
+            "Export the v0.9 macro-composite report (phase-classifier-only "
+            "first cut) for one canonical window. Output is deterministic "
+            "and offline; this command does not touch the network or write "
+            "to disk. Manifest / audit / store / API / Streamlit wiring "
+            "for this report is deferred to follow-up slices."
+        ),
+    )
+    p_mc.add_argument(
+        "window",
+        choices=_list_mc_windows(),
+        help="Macro-composite window id. Supported: 2008Q4 / 2020Q1 / 2023Q1.",
+    )
+    p_mc.add_argument(
+        "--format", default="json", choices=["json", "markdown"],
+        help="Output format (default: json)",
+    )
+    p_mc.set_defaults(func=cmd_macro_composite)
 
     # ─── v0.9 report registry catalog ───────────────────────────────
     sub.add_parser(
