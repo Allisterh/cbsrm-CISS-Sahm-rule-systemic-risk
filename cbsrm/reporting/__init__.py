@@ -46,10 +46,22 @@ Public surface (v0.9 work in progress)
   optional ``markdown`` package (``pip install cbsrm[html]``).
 * :data:`HTML_RENDERER_VERSION` — semantic version of the HTML
   renderer spec.
+* :func:`build_report_manifest` — build a deterministic export-time
+  manifest describing a rendered report (report id, window, format,
+  versions, output sha256). Pure / offline / no wall-clock by default.
+* :func:`sha256_text`, :func:`sha256_jsonable` — hash helpers used by
+  the manifest layer; safe to use stand-alone.
+* :data:`MANIFEST_VERSION` — semantic version of the manifest spec.
 """
 from cbsrm.reporting.html_renderer import (
     HTML_RENDERER_VERSION,
     render_dossier_html,
+)
+from cbsrm.reporting.manifest import (
+    MANIFEST_VERSION,
+    build_report_manifest,
+    sha256_jsonable,
+    sha256_text,
 )
 from cbsrm.reporting.registry import (
     REPORT_REGISTRY_VERSION,
@@ -75,4 +87,8 @@ __all__ = [
     "REPORT_REGISTRY_VERSION",
     "render_dossier_html",
     "HTML_RENDERER_VERSION",
+    "build_report_manifest",
+    "sha256_text",
+    "sha256_jsonable",
+    "MANIFEST_VERSION",
 ]
