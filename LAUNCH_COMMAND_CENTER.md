@@ -163,7 +163,7 @@ Drafts live in `LAUNCH_POSTS_v0.8.0.md`. **Preview-first** per the standing oper
 
 Full checklist lives in `SHOW_HN_POST.md` (sibling branch `docs/v08-launch-copy-refresh` has the v0.8-refreshed version). High-level gates:
 
-- [ ] Sibling branch `docs/v08-launch-copy-refresh` is merged so the post body says **555** tests and names the three front-ends
+- [ ] Sibling branch `docs/v08-launch-copy-refresh` is merged so the post body says **555** tests (v0.8.0 historical launch copy) and names the three v0.8 front-ends
 - [ ] `<YOUR_STREAMLIT_URL_HERE>` placeholder in the post body is replaced (or removed) per §4
 - [ ] HN account ≥ 7 days old, > 3 karma
 - [ ] Window: weekday 7-9 AM ET, not on a major news day
@@ -177,7 +177,7 @@ Full checklist lives in `SHOW_HN_POST.md` (sibling branch `docs/v08-launch-copy-
 
 Full mechanics in `SUBMISSION_CHECKLIST.md`; SSRN form fields in `SSRN_SUBMISSION.md` (sibling branch has the v0.8-refreshed version explicitly framing v0.5 as the paper snapshot and v0.8.0 as the current public reference release).
 
-- [ ] Sibling branch `docs/v08-launch-copy-refresh` merged (so the package says **555 tests** and names the three v0.8 front-ends in the code-availability statement)
+- [ ] Sibling branch `docs/v08-launch-copy-refresh` merged (so the package says **555 tests** — v0.8.0 historical figure — and names the three v0.8 front-ends in the code-availability statement)
 - [ ] Paper PDF generated (Word → PDF is the fastest path per `SUBMISSION_CHECKLIST.md` §Step 0 Path A)
 - [ ] Title, abstract, JEL codes, keywords copied from `SSRN_SUBMISSION.md`
 - [ ] FEN sub-network selected
@@ -212,7 +212,7 @@ Templates live in `COLD_EMAILS.md` (Aldasoro, Schrimpf, V-Lab, HF CTO, BIS Hub).
 | Frame CBSRM as a trading product | CBSRM is research analytics; trading work is private and not in this repo |
 | Auto-post to LinkedIn / Stocktwits / Telegram from CI | Standing preview-first rule applies; every public message gets operator eyes |
 | Force-push to `main` | Standing safety rule |
-| Tag `v0.9.0` or any pre-release tag | No `v0.9` work has landed yet |
+| Tag `v0.9.0` or any pre-release tag | No `v0.9.0` final tag has been cut yet; v0.9 work is additive on `main` until the explicit ship gate |
 
 ---
 
@@ -222,7 +222,7 @@ A 90-minute sequence assuming the prerequisites in §§3-9 are complete. Steps t
 
 | # | Step | Approx time | Depends on |
 |---|---|---:|---|
-| 1 | Final `pytest tests/` on `main` — confirm **555 passed** | 1 min | — |
+| 1 | Final `pytest tests/` on `main` — confirm the current expected count (**944 passed** on `main` as of this revision; was 555 at the `v0.8.0` tag) | 1 min | — |
 | 2 | Open <https://github.com/pravo123/cbsrm/releases/new?tag=v0.8.0> | 1 min | Step 1 |
 | 3 | ▸ Paste `GITHUB_RELEASE_v0.8.0.md`; publish | 3 min | Step 2 |
 | 4 | ▸ Capture the Release URL | 0 min | Step 3 |

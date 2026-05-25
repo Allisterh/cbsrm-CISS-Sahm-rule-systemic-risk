@@ -1,7 +1,7 @@
 # CBSRM Live Dashboard
 
 A single-page Streamlit demo of the CBSRM public API (currently surfacing
-v0.5 risk-pricing readings on top of v0.8.0-rc6). Renders the 4-state macro
+v0.5 risk-pricing readings on top of v0.8.0). Renders the 4-state macro
 regime, ECB CISS + STLFSI4 stress readings, yield-curve recession
 probability, USD/JPY + DXY regimes, FFR change, SRISK for three illustrative
 G-SIBs, and a synthetic-paired-return ΔCoVaR / MES illustration — all from the
