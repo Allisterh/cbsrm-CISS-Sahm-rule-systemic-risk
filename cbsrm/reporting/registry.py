@@ -85,16 +85,21 @@ def _crisis_dossier_entry() -> dict[str, Any]:
 def _macro_composite_entry() -> dict[str, Any]:
     """Build the macro-composite registry entry.
 
-    Now Python-executable through
-    :func:`cbsrm.reporting.build_macro_composite_report`. The v0.9
-    first cut is phase-classifier-only — it composes
+    Python-executable through
+    :func:`cbsrm.reporting.build_macro_composite_report`, with three
+    dedicated front-ends now on ``main``: a CLI subcommand
+    (``cbsrm macro-composite WINDOW --format json|markdown``), three
+    read-only HTTP API routes
+    (``GET /reports/macro-composite[/{window_id}[/markdown]]``), and a
+    standalone Streamlit viewer
+    (``streamlit run dashboard/macro_composite_viewer.py``). The
+    ``surfaces`` field below now advertises all three. The v0.9 first
+    cut is phase-classifier-only — it composes
     :func:`cbsrm.macro.classify_phase` over pinned per-window
     z-scores. Integration with :func:`cbsrm.macro.classify_regime`
     (which needs sub-indicator metadata dicts not yet pinned per
-    window) is deferred to a follow-up slice. CLI / API / Streamlit
-    execution surfaces are also deferred — the ``surfaces`` field
-    still points at the catalog-level endpoints until those slices
-    land.
+    window), plus manifest / audit / persistence wiring for this
+    report, are deferred to follow-up slices.
     """
     # Lazy import keeps cbsrm.reporting.registry import-safe in any
     # environment where the macro-composite report module may not yet
@@ -108,22 +113,28 @@ def _macro_composite_entry() -> dict[str, Any]:
         "title": "Macro Composite Snapshot",
         "description": (
             "Deterministic, fixture-backed macro-composite snapshot. "
-            "Now Python-executable through "
-            "cbsrm.reporting.build_macro_composite_report(window_id). "
+            "Python-executable through "
+            "cbsrm.reporting.build_macro_composite_report(window_id), "
+            "with dedicated CLI / API / Streamlit front-ends on main. "
             "The v0.9 first cut is phase-classifier-only: it composes "
             "cbsrm.macro.classify_phase over pinned per-window z-scores "
             "for the same canonical windows as the crisis-dossier "
             "report (2008Q4 / 2020Q1 / 2023Q1). Integration with "
-            "cbsrm.macro.classify_regime, plus CLI / API / Streamlit "
-            "execution surfaces, are deferred to follow-up slices."
+            "cbsrm.macro.classify_regime, plus manifest / audit / "
+            "persistence wiring for this report, are deferred to "
+            "follow-up slices."
         ),
         "formats": ["json", "markdown"],
         "windows": list(list_macro_composite_windows()),
         "surfaces": {
-            "cli": "cbsrm reports",
-            "api": ["GET /reports"],
+            "cli": "cbsrm macro-composite WINDOW --format json|markdown",
+            "api": [
+                "GET /reports/macro-composite",
+                "GET /reports/macro-composite/{window_id}",
+                "GET /reports/macro-composite/{window_id}/markdown",
+            ],
             "streamlit": (
-                "streamlit run dashboard/report_catalog_viewer.py"
+                "streamlit run dashboard/macro_composite_viewer.py"
             ),
         },
     }

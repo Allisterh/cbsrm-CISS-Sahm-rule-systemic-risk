@@ -4,7 +4,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-865_passing-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-944_passing-brightgreen.svg)](#tests)
 [![Version](https://img.shields.io/badge/version-0.8.0-blueviolet.svg)](CHANGELOG.md)
 [![Whitepaper](https://img.shields.io/badge/whitepaper-12_sections-orange.svg)](whitepaper/cbsrm_methodology_v1.md)
 
@@ -97,7 +97,7 @@ CBSRM is the public half of a paired system. The private companion (VolanX) appl
 
 ```bash
 pytest tests/ -v
-# 865 passing on current main in <25s; all HTTP mocked; Monte Carlo seeded for determinism.
+# 944 passing on current main in <25s; all HTTP mocked; Monte Carlo seeded for determinism.
 ```
 
 ## Whitepaper
@@ -192,15 +192,20 @@ driven by `CBSRM_REPORT_STORE`). The persistence layer is intentionally
 **not** coupled to the audit chain in code; the two surfaces share the
 manifest's `output_sha256` as a natural join key, and either can be
 used standalone. The catalog's second entry, `macro-composite`, is now
-Python-executable through
-`cbsrm.reporting.build_macro_composite_report(window_id)` and
-`cbsrm.reporting.render_macro_composite_markdown(report)` — a
+fully exposed across all three executable front-ends — a dedicated
+CLI subcommand
+(`cbsrm macro-composite WINDOW --format json|markdown`), three
+read-only HTTP API routes (`GET /reports/macro-composite`,
+`…/{window_id}`, `…/{window_id}/markdown`), and a standalone
+Streamlit viewer (`streamlit run dashboard/macro_composite_viewer.py`)
+— all backed by `cbsrm.reporting.build_macro_composite_report(window_id)`
+and `cbsrm.reporting.render_macro_composite_markdown(report)`. It is a
 phase-classifier-only first cut, deterministic and fixture-backed,
 returning JSON + Markdown for the same canonical windows
-(`2008Q4` / `2020Q1` / `2023Q1`); front-end (CLI / API / Streamlit) and
-export (manifest / audit / persistence) wiring for the macro-composite
-report is still deferred. These v0.9 surfaces are **not** in the
-`v0.8.0` tag — they live on `main` only.
+(`2008Q4` / `2020Q1` / `2023Q1`); export wiring (manifest / audit /
+persistence) and `classify_regime` integration for the macro-composite
+report remain deferred to follow-up slices. These v0.9 surfaces are
+**not** in the `v0.8.0` tag — they live on `main` only.
 
 **macro shock (`score_event`) → crisis replay (`replay_macro_events`) →
 cross-asset connectedness (`DYSpilloverIndicator`) → systemic DebtRank
@@ -212,9 +217,9 @@ cross-asset connectedness (`DYSpilloverIndicator`) → systemic DebtRank
 
 | Front-end | Command |
 |---|---|
-| **CLI**       | `cbsrm crisis-dossier WINDOW --format json\|markdown\|html [--title-prefix TEXT] [--manifest PATH] [--audit-db PATH] [--store-db PATH]` · `cbsrm reports` |
-| **HTTP API**  | `GET /reports`, `…/crisis-dossiers`, `…/{window_id}[?manifest=true][&audit=true][&store=true]`, `…/{window_id}/markdown`, `…/{window_id}/html`, `…/stored/{output_sha256}` |
-| **Streamlit** | `streamlit run dashboard/crisis_dossier_viewer.py` (Markdown/JSON/HTML/Manifest downloads + opt-in "Report store" sidebar driven by `CBSRM_REPORT_STORE`) · `streamlit run dashboard/report_catalog_viewer.py` |
+| **CLI**       | `cbsrm crisis-dossier WINDOW --format json\|markdown\|html [--title-prefix TEXT] [--manifest PATH] [--audit-db PATH] [--store-db PATH]` · `cbsrm macro-composite WINDOW --format json\|markdown` · `cbsrm reports` |
+| **HTTP API**  | `GET /reports`, `…/crisis-dossiers`, `…/{window_id}[?manifest=true][&audit=true][&store=true]`, `…/{window_id}/markdown`, `…/{window_id}/html`, `…/stored/{output_sha256}`, `…/macro-composite`, `…/macro-composite/{window_id}`, `…/macro-composite/{window_id}/markdown` |
+| **Streamlit** | `streamlit run dashboard/crisis_dossier_viewer.py` (Markdown/JSON/HTML/Manifest downloads + opt-in "Report store" sidebar driven by `CBSRM_REPORT_STORE`) · `streamlit run dashboard/macro_composite_viewer.py` · `streamlit run dashboard/report_catalog_viewer.py` |
 
 All three are deterministic, fixture-backed, offline (no FRED key, no
 network), and return bit-for-bit identical reports for the same window.

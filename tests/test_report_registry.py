@@ -249,9 +249,20 @@ def test_macro_composite_metadata_is_complete():
     assert meta["description"]
     assert meta["formats"] == ["json", "markdown"]
     surfaces = meta["surfaces"]
-    assert surfaces["cli"] == "cbsrm reports"
-    assert surfaces["api"] == ["GET /reports"]
-    assert "report_catalog_viewer.py" in surfaces["streamlit"]
+    # Surfaces now advertise the three executable front-ends shipped
+    # on main (CLI + API + Streamlit). The one-shot catalog-honesty
+    # flip from catalog-only to dedicated surfaces is pinned here.
+    assert surfaces["cli"] == (
+        "cbsrm macro-composite WINDOW --format json|markdown"
+    )
+    assert surfaces["api"] == [
+        "GET /reports/macro-composite",
+        "GET /reports/macro-composite/{window_id}",
+        "GET /reports/macro-composite/{window_id}/markdown",
+    ]
+    assert surfaces["streamlit"] == (
+        "streamlit run dashboard/macro_composite_viewer.py"
+    )
 
 
 def test_macro_composite_windows_match_pinned_set():

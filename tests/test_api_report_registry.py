@@ -93,6 +93,33 @@ def test_reports_catalog_includes_macro_composite(client):
     assert "macro-composite" in ids
 
 
+def test_reports_catalog_macro_composite_surfaces_advertise_all_front_ends(
+    client,
+):
+    """After the one-shot surfaces flip, ``GET /reports`` must advertise
+    the three macro-composite executable front-ends now on ``main``:
+    the dedicated CLI subcommand, the three sibling HTTP API routes,
+    and the standalone Streamlit viewer. Pins the catalog-honesty
+    contract from the HTTP surface."""
+    body = client.get("/reports").json()
+    macro = next(
+        entry for entry in body["reports"]
+        if entry["id"] == "macro-composite"
+    )
+    surfaces = macro["surfaces"]
+    assert surfaces["cli"] == (
+        "cbsrm macro-composite WINDOW --format json|markdown"
+    )
+    assert surfaces["api"] == [
+        "GET /reports/macro-composite",
+        "GET /reports/macro-composite/{window_id}",
+        "GET /reports/macro-composite/{window_id}/markdown",
+    ]
+    assert surfaces["streamlit"] == (
+        "streamlit run dashboard/macro_composite_viewer.py"
+    )
+
+
 def test_reports_catalog_does_not_build_a_dossier(monkeypatch):
     """Hitting ``GET /reports`` must NOT invoke the dossier builder.
     The catalog is metadata-only; this is the load-bearing contract

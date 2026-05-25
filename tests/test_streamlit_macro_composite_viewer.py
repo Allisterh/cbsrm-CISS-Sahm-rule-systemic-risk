@@ -236,27 +236,32 @@ def test_build_viewer_artifacts_matches_in_process_builder(viewer, window_id):
 # ─── Catalog-honesty drift guard ────────────────────────────────────
 
 
-def test_registry_macro_composite_surfaces_not_yet_advertising_viewer():
-    """The registry catalog entry for ``macro-composite`` must not yet
-    advertise this new Streamlit viewer page. The one-shot
-    surfaces/docs flip is reserved for a later slice (Prompt 57). If
-    this test starts failing, that means the surfaces flip has
-    happened — either bring the flip into this slice intentionally or
-    revert the registry change."""
+def test_registry_macro_composite_surfaces_advertise_all_front_ends():
+    """The registry catalog entry for ``macro-composite`` now advertises
+    all three executable front-ends shipped on ``main``: the dedicated
+    CLI subcommand, the three read-only HTTP API routes, and this new
+    standalone Streamlit viewer. Pins the one-shot catalog-honesty
+    flip — if this test fails after a future slice, either the
+    advertised surface no longer exists (broken catalog honesty) or
+    the surfaces dict was mutated."""
     catalog = get_report_catalog()
     macro = next(
         entry for entry in catalog["reports"]
         if entry["id"] == "macro-composite"
     )
     surfaces = macro["surfaces"]
-    # CLI: still points at the catalog command, not the dedicated
-    # ``cbsrm macro-composite`` subcommand. (Surfaces flip = Prompt 57.)
-    assert surfaces["cli"] == "cbsrm reports"
-    # API: still the catalog-only single-endpoint list, not the three
-    # macro-composite sibling routes already on main.
-    assert surfaces["api"] == ["GET /reports"]
-    # Streamlit: still the catalog landing page, not this new viewer.
-    assert surfaces["streamlit"] == (
-        "streamlit run dashboard/report_catalog_viewer.py"
+    # CLI: dedicated ``cbsrm macro-composite`` subcommand.
+    assert surfaces["cli"] == (
+        "cbsrm macro-composite WINDOW --format json|markdown"
     )
-    assert "macro_composite_viewer.py" not in surfaces["streamlit"]
+    # API: the three sibling routes.
+    assert surfaces["api"] == [
+        "GET /reports/macro-composite",
+        "GET /reports/macro-composite/{window_id}",
+        "GET /reports/macro-composite/{window_id}/markdown",
+    ]
+    # Streamlit: this viewer page (not the catalog landing page).
+    assert surfaces["streamlit"] == (
+        "streamlit run dashboard/macro_composite_viewer.py"
+    )
+    assert "macro_composite_viewer.py" in surfaces["streamlit"]

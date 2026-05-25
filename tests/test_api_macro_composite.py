@@ -270,11 +270,12 @@ def test_crisis_dossier_routes_unchanged_after_macro_composite_added():
     assert "/reports/crisis-dossiers/{window_id}/html" in paths
 
 
-def test_reports_catalog_endpoint_unchanged_after_macro_composite_added(client):
-    """The /reports catalog endpoint and the registry it serves must
-    not have been touched by this slice — the macro-composite surface
-    landing is intentionally not reflected in the catalog yet
-    (registry ``surfaces`` field is deferred to the third front-end).
+def test_reports_catalog_endpoint_advertises_macro_composite_api_routes(client):
+    """The /reports catalog endpoint must surface the three
+    macro-composite sibling routes in ``surfaces.api`` after the v0.9
+    one-shot surfaces flip (all three front-ends — CLI, API,
+    Streamlit — now exist on ``main``). Pins the catalog-honesty
+    contract from the API slice's side.
     """
     r = client.get("/reports")
     assert r.status_code == 200
@@ -284,6 +285,10 @@ def test_reports_catalog_endpoint_unchanged_after_macro_composite_added(client):
     # Both entries still present and unchanged in order/shape.
     assert "crisis-dossier" in ids
     assert "macro-composite" in ids
-    # macro-composite surfaces.api still pinned to the catalog-only view.
+    # macro-composite surfaces.api now advertises the three sibling routes.
     mc_entry = next(e for e in body["reports"] if e["id"] == "macro-composite")
-    assert mc_entry["surfaces"]["api"] == ["GET /reports"]
+    assert mc_entry["surfaces"]["api"] == [
+        "GET /reports/macro-composite",
+        "GET /reports/macro-composite/{window_id}",
+        "GET /reports/macro-composite/{window_id}/markdown",
+    ]
