@@ -503,7 +503,7 @@
       <div class="tier feat">
         <div class="badge">Most institutions</div>
         <h3>Desk</h3>
-        <div class="price">from <b>$—</b> <span class="dim">/ yr</span></div>
+        <div class="price">from <b>$48,000</b> <span class="dim">/ yr · or $4,000/mo</span></div>
         <div class="for">For risk desks &amp; research teams</div>
         <ul>
           <li>Hosted, monitored read-only API &amp; dashboards</li>
@@ -511,7 +511,7 @@
           <li>Governed PipelineRecord + audit-chain access</li>
           <li>Onboarding &amp; priority support</li>
         </ul>
-        <a class="btn btn-primary" href="#contact">Request a quote</a>
+        <a class="btn btn-primary" id="desk-cta" href="#contact">Get started →</a>
       </div>
       <div class="tier">
         <div class="badge">Regulated</div>
@@ -594,6 +594,15 @@
 
 <script>
 document.getElementById('yr').textContent=new Date().getFullYear();
+// ─── Stripe Desk checkout ─────────────────────────────────────────────
+// Paste your Stripe Payment Link between the quotes below. When set, the Desk
+// "Get started" button becomes a one-click Stripe checkout. Empty = falls back
+// to "book a briefing" (#contact). No keys live in this file — Stripe hosts checkout.
+var DESK_STRIPE_LINK = "";
+if (DESK_STRIPE_LINK) {
+  var _d = document.getElementById('desk-cta');
+  if (_d) { _d.href = DESK_STRIPE_LINK; _d.target = "_blank"; _d.rel = "noopener"; _d.textContent = "Subscribe → $48k/yr"; }
+}
 (function(){
   var TONE={'ECB-CISS-US':[0.1,0.27,0.4],'ECB-CISS-EA':[0.1,0.27,0.4],'ECB-CISS-UK':[0.1,0.27,0.4],
     'STLFSI4':[1,2,3],'YIELD-CURVE':[0.15,0.33,0.5],'SAHM':[0.3,0.5,0.5],'CREDIT-SPREAD':[400,700,1000]};
