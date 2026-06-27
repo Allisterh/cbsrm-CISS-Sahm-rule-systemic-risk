@@ -598,7 +598,7 @@ document.getElementById('yr').textContent=new Date().getFullYear();
 // Paste your Stripe Payment Link between the quotes below. When set, the Desk
 // "Get started" button becomes a one-click Stripe checkout. Empty = falls back
 // to "book a briefing" (#contact). No keys live in this file — Stripe hosts checkout.
-var DESK_STRIPE_LINK = "";
+var DESK_STRIPE_LINK = "https://buy.stripe.com/6oU00iawt5DkezAbJ3g7e00";
 if (DESK_STRIPE_LINK) {
   var _d = document.getElementById('desk-cta');
   if (_d) { _d.href = DESK_STRIPE_LINK; _d.target = "_blank"; _d.rel = "noopener"; _d.textContent = "Subscribe → $48k/yr"; }
