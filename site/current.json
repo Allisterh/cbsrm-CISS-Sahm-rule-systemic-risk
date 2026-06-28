@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-current-conditions/1.0.0",
-  "generated_at_utc": "2026-06-27T14:25:05Z",
+  "generated_at_utc": "2026-06-28T14:17:36Z",
   "readings": [
     {
       "id": "ECB-CISS-US",
@@ -44,11 +44,8 @@
       "lens": "System stress",
       "unit": "z · 0 = normal",
       "source": "FRED",
-      "status": "ok",
-      "as_of": "2026-06-19",
-      "fmt": "signed",
-      "value": -0.9568,
-      "interpretation": "0 = normal conditions; >0 above-average stress; <0 below-average. Weekly-Thursday cadence."
+      "status": "unavailable",
+      "reason": "no data (missing key, provider error, or non-JSON output)"
     },
     {
       "id": "YIELD-CURVE",
@@ -56,11 +53,8 @@
       "lens": "Macro regime",
       "unit": "Estrella–Mishkin",
       "source": "FRED",
-      "status": "ok",
-      "as_of": "2026-06-26",
-      "fmt": "probability",
-      "value": 0.192317,
-      "interpretation": "Recession probability 12 months out, conditional on current 10Y-3M Treasury spread, via Estrella-Mishkin probit. Persistent inversion = run-length >= 60 trading days."
+      "status": "unavailable",
+      "reason": "no data (missing key, provider error, or non-JSON output)"
     },
     {
       "id": "MACRO-REGIME",
@@ -68,10 +62,8 @@
       "lens": "Macro regime",
       "unit": "composite",
       "source": "FRED",
-      "status": "ok",
-      "as_of": "2026-06-18",
-      "fmt": "state",
-      "state": "TRANSITION_UP"
+      "status": "unavailable",
+      "reason": "no data (missing key, provider error, or non-JSON output)"
     },
     {
       "id": "SAHM",
@@ -79,12 +71,8 @@
       "lens": "Macro regime",
       "unit": "pp · trigger 0.50",
       "source": "FRED",
-      "status": "ok",
-      "as_of": "2026-05-01",
-      "fmt": "pp2",
-      "value": 0.1,
-      "state": "NORMAL",
-      "interpretation": "Sahm Rule: 3-month avg of UNRATE minus its trailing 12-month minimum, in percentage points. >= 0.50 pp = RECESSION_TRIGGERED (historical perfect record); >= 0.30 pp = EARLY_WARNING."
+      "status": "unavailable",
+      "reason": "no data (missing key, provider error, or non-JSON output)"
     },
     {
       "id": "CREDIT-SPREAD",
@@ -92,23 +80,19 @@
       "lens": "Tail / credit",
       "unit": "bps",
       "source": "FRED",
-      "status": "ok",
-      "as_of": "2026-06-25",
-      "fmt": "bps",
-      "value": 278.0,
-      "state": "CREDIT_BENIGN",
-      "interpretation": "HY OAS regime classifier. Level >= 1000 bps OR 1-month change >= 200 bps signals acute credit stress."
+      "status": "unavailable",
+      "reason": "no data (missing key, provider error, or non-JSON output)"
     }
   ],
   "summary": {
     "total": 8,
-    "live": 8,
-    "unavailable": 0
+    "live": 3,
+    "unavailable": 5
   },
   "sources": [
     "ECB SDMX",
     "FRED"
   ],
   "disclaimer": "Latest available public readings, each dated to its provider's last publication. Risk measurement — not investment advice.",
-  "output_sha256": "e6769008e599f1380b88abc54c6dee67554d67da51752294984f12e733e37137"
+  "output_sha256": "1bd9199a788cfd8ba1da495b668b625a4c1c5dc1e2764346f753689e418c9b06"
 }
