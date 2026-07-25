@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-history/1.0.0",
-  "generated_at_utc": "2026-07-24T14:15:34Z",
+  "generated_at_utc": "2026-07-25T14:04:53Z",
   "quarters": [
     "1999Q1",
     "1999Q2",
@@ -731,7 +731,7 @@
         "2025Q4": 0.198833,
         "2026Q1": 0.184358,
         "2026Q2": 0.189109,
-        "2026Q3": 0.160295
+        "2026Q3": 0.164643
       }
     },
     {
@@ -1078,7 +1078,7 @@
         "2025Q4": 281.0,
         "2026Q1": 328.0,
         "2026Q2": 275.0,
-        "2026Q3": 268.0
+        "2026Q3": 277.0
       },
       "states": {
         "2023Q3": "CREDIT_BENIGN",
@@ -1102,5 +1102,5 @@
     "FRED"
   ],
   "disclaimer": "Historical quarterly readings reproduced from public data (ECB SDMX + FRED), at each provider's quarter-end observation. Risk measurement — not investment advice.",
-  "output_sha256": "c063eb3c06a49b676c0101f571f09e4080890b1b15bd2833449bd2668d5b7513"
+  "output_sha256": "62fa72d5c2647ba6813c0ac72aaeba01a7715ead18f2e63e69d83f1ebea21ad3"
 }
