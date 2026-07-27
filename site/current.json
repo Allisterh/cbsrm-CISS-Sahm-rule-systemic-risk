@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-current-conditions/1.0.0",
-  "generated_at_utc": "2026-07-26T14:02:25Z",
+  "generated_at_utc": "2026-07-27T15:16:42Z",
   "readings": [
     {
       "id": "ECB-CISS-US",
@@ -9,9 +9,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-07-23",
+      "as_of": "2026-07-24",
       "fmt": "ratio",
-      "value": 0.014817,
+      "value": 0.011694,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -21,9 +21,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-07-23",
+      "as_of": "2026-07-24",
       "fmt": "ratio",
-      "value": 0.01248,
+      "value": 0.010686,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -33,9 +33,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-07-23",
+      "as_of": "2026-07-24",
       "fmt": "ratio",
-      "value": 0.010653,
+      "value": 0.013109,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -110,5 +110,5 @@
     "FRED"
   ],
   "disclaimer": "Latest available public readings, each dated to its provider's last publication. Risk measurement — not investment advice.",
-  "output_sha256": "c7b04e988deed9f0126d6c07086dcb8b371c4e38ee5172125bc0e021e7f0e073"
+  "output_sha256": "cc394f740580ac06bb06a1d4992448f204813e3d23b9573c81fcf744c4a1c015"
 }
