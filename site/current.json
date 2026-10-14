@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-current-conditions/1.0.0",
-  "generated_at_utc": "2026-10-13T19:19:38Z",
+  "generated_at_utc": "2026-10-14T17:16:44Z",
   "readings": [
     {
       "id": "ECB-CISS-US",
@@ -9,9 +9,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-09",
+      "as_of": "2026-10-13",
       "fmt": "ratio",
-      "value": 0.007272,
+      "value": 0.007661,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -21,9 +21,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-09",
+      "as_of": "2026-10-13",
       "fmt": "ratio",
-      "value": 0.014532,
+      "value": 0.011541,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -33,9 +33,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-09",
+      "as_of": "2026-10-13",
       "fmt": "ratio",
-      "value": 0.011361,
+      "value": 0.007435,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -45,9 +45,9 @@
       "unit": "z · 0 = normal",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-02",
+      "as_of": "2026-10-09",
       "fmt": "signed",
-      "value": -0.4681,
+      "value": -0.7206,
       "interpretation": "0 = normal conditions; >0 above-average stress; <0 below-average. Weekly-Thursday cadence."
     },
     {
@@ -57,9 +57,9 @@
       "unit": "Estrella–Mishkin",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-09",
+      "as_of": "2026-10-13",
       "fmt": "probability",
-      "value": 0.12947,
+      "value": 0.134513,
       "interpretation": "Recession probability 12 months out, conditional on current 10Y-3M Treasury spread, via Estrella-Mishkin probit. Persistent inversion = run-length >= 60 trading days."
     },
     {
@@ -69,7 +69,7 @@
       "unit": "composite",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-02",
+      "as_of": "2026-10-09",
       "fmt": "state",
       "state": "TRANSITION_UP"
     },
@@ -93,9 +93,9 @@
       "unit": "bps",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-12",
+      "as_of": "2026-10-13",
       "fmt": "bps",
-      "value": 311.0,
+      "value": 316.0,
       "state": "CREDIT_BENIGN",
       "interpretation": "HY OAS regime classifier. Level >= 1000 bps OR 1-month change >= 200 bps signals acute credit stress."
     }
@@ -110,5 +110,5 @@
     "FRED"
   ],
   "disclaimer": "Latest available public readings, each dated to its provider's last publication. Risk measurement — not investment advice.",
-  "output_sha256": "99dfc429c01563b36e62bfe79c7ebfe63e1a28fc5d1563a4192b6761b2f6d1f1"
+  "output_sha256": "07bf4709862e34db8ea295dafa8c481e03935200db1781e742abc66187f4fd94"
 }
