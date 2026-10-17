@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-current-conditions/1.0.0",
-  "generated_at_utc": "2026-10-16T16:43:21Z",
+  "generated_at_utc": "2026-10-17T15:40:08Z",
   "readings": [
     {
       "id": "ECB-CISS-US",
@@ -57,9 +57,9 @@
       "unit": "Estrella–Mishkin",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-15",
+      "as_of": "2026-10-16",
       "fmt": "probability",
-      "value": 0.151825,
+      "value": 0.150443,
       "interpretation": "Recession probability 12 months out, conditional on current 10Y-3M Treasury spread, via Estrella-Mishkin probit. Persistent inversion = run-length >= 60 trading days."
     },
     {
@@ -110,5 +110,5 @@
     "FRED"
   ],
   "disclaimer": "Latest available public readings, each dated to its provider's last publication. Risk measurement — not investment advice.",
-  "output_sha256": "6567d5cdd078b32694f2ac889a71481b1f050c2b32871d7b11324603e9c677bf"
+  "output_sha256": "7e5419c88a533bc5f82d68a84383c761c1d838088b1116a128c7ceae6cd97eef"
 }
