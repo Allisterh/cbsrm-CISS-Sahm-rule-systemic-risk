@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-current-conditions/1.0.0",
-  "generated_at_utc": "2026-10-25T16:28:51Z",
+  "generated_at_utc": "2026-10-26T18:42:35Z",
   "readings": [
     {
       "id": "ECB-CISS-US",
@@ -9,9 +9,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-22",
+      "as_of": "2026-10-23",
       "fmt": "ratio",
-      "value": 0.033831,
+      "value": 0.024844,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -21,9 +21,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-22",
+      "as_of": "2026-10-23",
       "fmt": "ratio",
-      "value": 0.02097,
+      "value": 0.024864,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -33,9 +33,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-22",
+      "as_of": "2026-10-23",
       "fmt": "ratio",
-      "value": 0.002398,
+      "value": 0.001938,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -93,9 +93,9 @@
       "unit": "bps",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-22",
+      "as_of": "2026-10-23",
       "fmt": "bps",
-      "value": 340.0,
+      "value": 338.0,
       "state": "CREDIT_BENIGN",
       "interpretation": "HY OAS regime classifier. Level >= 1000 bps OR 1-month change >= 200 bps signals acute credit stress."
     }
@@ -110,5 +110,5 @@
     "FRED"
   ],
   "disclaimer": "Latest available public readings, each dated to its provider's last publication. Risk measurement — not investment advice.",
-  "output_sha256": "95af138ed6443b69d9280a5ebd93279b7d2b4b53009bc593920ecc82ecf8cc41"
+  "output_sha256": "9a8bb1b28c6c11318b7c804fb1410bdbc18e18ecb9e1c248b729603fc5b21200"
 }
