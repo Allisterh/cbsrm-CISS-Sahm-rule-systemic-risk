@@ -1,6 +1,6 @@
 {
   "schema": "cbsrm-current-conditions/1.0.0",
-  "generated_at_utc": "2026-10-27T18:03:19Z",
+  "generated_at_utc": "2026-10-28T18:22:00Z",
   "readings": [
     {
       "id": "ECB-CISS-US",
@@ -9,9 +9,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-26",
+      "as_of": "2026-10-27",
       "fmt": "ratio",
-      "value": 0.025394,
+      "value": 0.01779,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -21,9 +21,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-26",
+      "as_of": "2026-10-27",
       "fmt": "ratio",
-      "value": 0.023465,
+      "value": 0.0186,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -33,9 +33,9 @@
       "unit": "index 0–1",
       "source": "ECB SDMX",
       "status": "ok",
-      "as_of": "2026-10-26",
+      "as_of": "2026-10-27",
       "fmt": "ratio",
-      "value": 0.002293,
+      "value": 0.003324,
       "interpretation": "Values in [0, 1]. Levels above ~0.4 historically associated with broad financial-stability events. Daily cadence."
     },
     {
@@ -57,9 +57,9 @@
       "unit": "Estrella–Mishkin",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-26",
+      "as_of": "2026-10-27",
       "fmt": "probability",
-      "value": 0.157438,
+      "value": 0.158862,
       "interpretation": "Recession probability 12 months out, conditional on current 10Y-3M Treasury spread, via Estrella-Mishkin probit. Persistent inversion = run-length >= 60 trading days."
     },
     {
@@ -93,9 +93,9 @@
       "unit": "bps",
       "source": "FRED",
       "status": "ok",
-      "as_of": "2026-10-26",
+      "as_of": "2026-10-27",
       "fmt": "bps",
-      "value": 330.0,
+      "value": 318.0,
       "state": "CREDIT_BENIGN",
       "interpretation": "HY OAS regime classifier. Level >= 1000 bps OR 1-month change >= 200 bps signals acute credit stress."
     }
@@ -110,5 +110,5 @@
     "FRED"
   ],
   "disclaimer": "Latest available public readings, each dated to its provider's last publication. Risk measurement — not investment advice.",
-  "output_sha256": "2ce54b6f8c866e023b5880f226b5f2721348c24fa1170c3fba7bb29bec3a3a49"
+  "output_sha256": "aa2d581df53f55e6960dfb4b89b849731421765030874af0623504049ad50dcb"
 }
